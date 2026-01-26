@@ -2,10 +2,13 @@ package com.example.recipegenerator.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val Brown10 = Color(0xFFFFEDDD)
+val Brown30 = Color(0xFFA88467)
+val Brown50 = Color(0xFF67472C)
+val Brown80 = Color(0xFF3C210B)
+val Black = Color(0xFF080400)
+val Lime10 = Color(0xFFFBFEE3)
+val Lime30 = Color(0xFFEDFA91)
+val Lime50 = Color(0xFFC7D94B)
+val Lime80 = Color(0xFF94A61A)
+val Lime100 = Color(0xFF485200)
