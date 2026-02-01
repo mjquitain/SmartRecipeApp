@@ -1,5 +1,6 @@
 package com.example.recipegenerator
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -7,7 +8,6 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
@@ -42,6 +42,15 @@ class MainActivity : AppCompatActivity() {
 
         btnToggleSignUp.setOnClickListener {
             updateToggleUI(isSignIn = false)
+        }
+
+        // ADD THIS: Navigate to your screens when Sign In/Sign Up is clicked
+        btnMainAction.setOnClickListener {
+            // Navigate to HomeActivity (your Compose screens)
+            val intent = Intent(this, HomeActivity::class.java)
+            startActivity(intent)
+            // Optional: finish() if you don't want to come back to login
+            // finish()
         }
     }
 
