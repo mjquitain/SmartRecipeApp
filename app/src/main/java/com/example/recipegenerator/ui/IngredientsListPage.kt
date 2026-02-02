@@ -72,8 +72,10 @@ fun IngredientsListPage(
                         )
                     }
                 },
-                modifier = Modifier
-                    .shadow(10.dp)
+                // NOTE: Removed shadows for IngredientsListPage.kt, NotificationsPage.kt, and
+                //   ProfilePage.kt to conform to the appearance of other pages.
+//                modifier = Modifier
+//                    .shadow(10.dp)
             )
         },
 
