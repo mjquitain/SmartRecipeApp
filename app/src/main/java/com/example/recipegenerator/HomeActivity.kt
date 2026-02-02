@@ -90,7 +90,7 @@ fun AppNavigation() {
                         println("Navigate to profile")
                     },
                     onRecipeClick = { recipe ->
-                        // TODO: Your team will add recipe details screen
+                        // TODO: Insert recipe details here
                         println("Navigate to recipe details: ${recipe.name}")
                     },
                     onNavigateToHome = {
