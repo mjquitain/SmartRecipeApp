@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.recipegenerator.ui.screens.HomeScreen
 import com.example.recipegenerator.ui.screens.IngredientsListScreen
+import com.example.recipegenerator.ui.screens.ProfileScreen
 import com.example.recipegenerator.ui.screens.RecipeGenerationScreen
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
 
