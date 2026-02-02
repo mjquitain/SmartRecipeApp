@@ -50,7 +50,6 @@ import java.time.LocalDate
 @Composable
 fun IngredientsListScreen(
     padding : PaddingValues = PaddingValues(),
-    onBackClick : () -> Unit = {},
     onAddClick : () -> Unit = {},
     onFilterClick : () -> Unit = {},
 ) {
@@ -61,16 +60,6 @@ fun IngredientsListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Ingredients") },
-                actions = {
-                    IconButton(
-                        onClick = onBackClick
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Sharp.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
-                },
                 // NOTE: Removed shadows for IngredientsListScreen.kt, NotificationsScreen.kt, and
                 //   ProfileScreen.kt to conform to the appearance of other pages.
 //                modifier = Modifier
