@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.recipegenerator.ui.screens.HomeScreen
+import com.example.recipegenerator.ui.screens.IngredientsListScreen
 import com.example.recipegenerator.ui.screens.RecipeGenerationScreen
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
 
@@ -61,36 +62,12 @@ fun AppNavigation() {
     ) { paddingValues ->
         when (currentScreen) {
             "ingredients" -> {
-                // TODO: Your team will add ingredients screen
-                // For now, show placeholder
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.List,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            "Ingredients Screen",
-                            fontSize = 20.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Coming soon...",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                IngredientsListScreen(
+                    padding = paddingValues,
+                    onAddClick = {
+                        println("Response test for add ingredient")
                     }
-                }
+                )
             }
             "home" -> {
                 // HomeScreen = "Want to look for a meal?" page
