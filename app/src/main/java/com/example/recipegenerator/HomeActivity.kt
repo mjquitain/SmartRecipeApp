@@ -49,6 +49,10 @@ class HomeActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
+    // TODO: No time to apply this yet, but Compose's navigation
+    //   dependencies are now installed. Change how the app
+    //   navigates (i.e. replace these strings and the goto function
+    //   with a NavGraph and NavController.
     var currentScreen by remember { mutableStateOf("home") }
     var lastScreen by remember { mutableStateOf("home") }
 
