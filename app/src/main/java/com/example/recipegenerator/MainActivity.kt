@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +16,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnToggleSignIn: Button
     private lateinit var btnToggleSignUp: Button
     private lateinit var btnMainAction: Button
+    private lateinit var btnBack: ImageButton
     private lateinit var tvTitle: TextView
     private lateinit var tvSubTitle: TextView
     private lateinit var layoutSignInFields: LinearLayout
@@ -28,6 +30,7 @@ class MainActivity : AppCompatActivity() {
         btnToggleSignIn = findViewById(R.id.btnToggleSignIn)
         btnToggleSignUp = findViewById(R.id.btnToggleSignUp)
         btnMainAction = findViewById(R.id.btnMainAction)
+        btnBack = findViewById(R.id.btnBack)
         tvTitle = findViewById(R.id.Title)
         tvSubTitle = findViewById(R.id.Subtitle)
         layoutSignInFields = findViewById(R.id.layoutSignInFields)
@@ -44,13 +47,14 @@ class MainActivity : AppCompatActivity() {
             updateToggleUI(isSignIn = false)
         }
 
-        // ADD THIS: Navigate to your screens when Sign In/Sign Up is clicked
         btnMainAction.setOnClickListener {
-            // Navigate to HomeActivity (your Compose screens)
             val intent = Intent(this, HomeActivity::class.java)
             startActivity(intent)
-            // Optional: finish() if you don't want to come back to login
-            // finish()
+            finish()
+        }
+
+        btnBack.setOnClickListener {
+            finish()
         }
     }
 
