@@ -1,4 +1,4 @@
-package com.example.recipegenerator.ui
+package com.example.recipegenerator.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -1,4 +1,4 @@
-package com.example.recipegenerator.ui
+package com.example.recipegenerator.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
