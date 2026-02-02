@@ -111,6 +111,14 @@ fun AppNavigation() {
                     }
                 )
             }
+            "profile" -> {
+                // ProfileScreen
+                ProfileScreen(
+                    padding = paddingValues,
+                    onBackClick = {goto(lastScreen)}
+                )
+            }
+            
         }
     }
 }
