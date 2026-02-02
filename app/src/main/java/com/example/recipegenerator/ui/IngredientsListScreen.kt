@@ -35,7 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,7 +48,7 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IngredientsListPage(
+fun IngredientsListScreen(
     padding : PaddingValues = PaddingValues(),
     onBackClick : () -> Unit = {},
     onAddClick : () -> Unit = {},
@@ -72,8 +71,8 @@ fun IngredientsListPage(
                         )
                     }
                 },
-                // NOTE: Removed shadows for IngredientsListPage.kt, NotificationsPage.kt, and
-                //   ProfilePage.kt to conform to the appearance of other pages.
+                // NOTE: Removed shadows for IngredientsListScreen.kt, NotificationsScreen.kt, and
+                //   ProfileScreen.kt to conform to the appearance of other pages.
 //                modifier = Modifier
 //                    .shadow(10.dp)
             )
@@ -231,8 +230,8 @@ fun IngredientListItem(
 
 @Composable
 @Preview(showBackground = true)
-fun IngredientsListPagePreview() {
+fun IngredientsListScreenPreview() {
     RecipeGeneratorTheme(dynamicColor = false) {
-        IngredientsListPage()
+        IngredientsListScreen()
     }
 }

@@ -34,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,10 +42,10 @@ import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
 
 
 // TODO: Maybe store this in a "namespace" object? At least both the object and this function can
-//   be linked in navigation nodes. Maybe like "ProfileNavNode.ProfilePage()"?
+//   be linked in navigation nodes. Maybe like "ProfileNavNode.ProfileScreen()"?
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfilePage(
+fun ProfileScreen(
     padding : PaddingValues = PaddingValues(),
     onBackClick : () -> Unit = {},
     onLogOutClick : () -> Unit = {}, // Passed to all notifications. Only after being able to store notification messages temporarily will this be relevant.
@@ -68,8 +67,8 @@ fun ProfilePage(
                         )
                     }
                 },
-                // NOTE: Removed shadows for IngredientsListPage.kt, NotificationsPage.kt, and
-                //   ProfilePage.kt to conform to the appearance of other pages.
+                // NOTE: Removed shadows for IngredientsListScreen.kt, NotificationsScreen.kt, and
+                //   ProfileScreen.kt to conform to the appearance of other pages.
 //                modifier = Modifier
 //                    .shadow(10.dp)
             )
@@ -148,8 +147,8 @@ fun ProfilePage(
 
 @Composable
 @Preview(showBackground = true)
-fun ProfilePagePreview() {
+fun ProfileScreenPreview() {
     RecipeGeneratorTheme(darkTheme = false, dynamicColor = false) {
-        ProfilePage()
+        ProfileScreen()
     }
 }
