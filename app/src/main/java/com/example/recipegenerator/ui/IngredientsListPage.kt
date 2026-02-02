@@ -190,6 +190,13 @@ fun IngredientListItem(
                     .background(Color(0.3f, 0.9f, 0.1f))
                     .clickable(
                         enabled = true,
+                        // TODO: This should present the expiration date instead.
+                        //   When information about ingredients are finally
+                        //   storable, replace this with the actual date.
+                        //   .
+                        //   Also, the code below is supported only for API version
+                        //   26 (= to Android 7 [Nougat]) and the project is set to
+                        //   use at least API 23 (= to Android 6 [Marshmallow]).
                         onClick = {onLifetimeClick(LocalDate.now(Clock.systemDefaultZone()))}
                     )
                 )
