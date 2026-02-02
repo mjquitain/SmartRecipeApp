@@ -49,7 +49,6 @@ class HomeActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
-    // Simple navigation between your screens
     var currentScreen by remember { mutableStateOf("home") }
 
     Scaffold(
