@@ -50,12 +50,25 @@ class HomeActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     var currentScreen by remember { mutableStateOf("home") }
+    var lastScreen by remember { mutableStateOf("home") }
+
+
+    fun goto(screen : String) {
+        if (screen == currentScreen) {
+            return
+        }
+
+        lastScreen = currentScreen
+        currentScreen = screen
+    }
+
+
 
     Scaffold(
         bottomBar = {
             CircularBottomNavigationBar(
                 currentScreen = currentScreen,
-                onNavigate = { screen -> currentScreen = screen }
+                onNavigate = { screen -> goto(screen) }
             )
         }
     ) { paddingValues ->
@@ -70,14 +83,15 @@ fun AppNavigation() {
             }
             "home" -> {
                 // HomeScreen = "Want to look for a meal?" page
+
+
                 HomeScreen(
                     padding = paddingValues,
                     onProfileClick = {
-                        // TODO: Your team will add profile screen
-                        println("Navigate to profile")
+                        goto("profile")
                     },
                     onNavigateToRecipes = {
-                        currentScreen = "recipes"
+                        goto("recipes")
                     }
                 )
             }
@@ -86,15 +100,14 @@ fun AppNavigation() {
                 RecipeGenerationScreen(
                     padding = paddingValues,
                     onProfileClick = {
-                        // TODO: Your team will add profile screen
-                        println("Navigate to profile")
+                        goto("profile")
                     },
                     onRecipeClick = { recipe ->
                         // TODO: Insert recipe details here
                         println("Navigate to recipe details: ${recipe.name}")
                     },
                     onNavigateToHome = {
-                        currentScreen = "home"
+                        goto("home")
                     }
                 )
             }
