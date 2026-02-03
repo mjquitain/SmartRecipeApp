@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.RecipeGenerator" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.RecipeGenerator" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:colorBackground">@color/lime_10</item>
+
+        <item name="colorPrimary">@color/brown_30</item>
+        <item name="colorSecondary">@color/brown_50</item>
+        <item name="colorTertiary">@color/lime_50</item>
+    </style>
+
 </resources>

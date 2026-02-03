@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="36dp"
+        android:layout_height="40dp"
+        android:background="#0EFFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.06"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.052"
+        app:srcCompat="@drawable/backbtn" />
+
+    <TextView
+        android:id="@+id/Title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="104dp"
+        android:paddingHorizontal="24dp"
+        android:text="Welcome Back!"
+        android:textColor="@color/grey_10"
+        android:textSize="30dp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/Subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="156dp"
+        android:minLines="3"
+        android:paddingHorizontal="24dp"
+        android:text="Ready to cook something good? Let's\ncheck your ingredients and find out\nwhat you can eat."
+        android:textColor="@color/grey_10"
+        android:textSize="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="32dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/Subtitle">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/toproundedcorner"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/bg_tab_indicator"
+                android:orientation="horizontal"
+                android:padding="5dp">
+
+                <Button
+                    android:id="@+id/btnToggleSignIn"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_tab_container"
+                    android:text="Sign In"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null"
+                    app:cornerRadius="25dp" />
+
+                <Button
+                    android:id="@+id/btnToggleSignUp"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:text="Sign Up"
+                    android:textColor="@color/black"
+                    app:backgroundTint="@null"
+                    app:cornerRadius="25dp" />
+            </LinearLayout>
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/layoutSignInFields"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="visible">
+
+                        <EditText
+                            android:id="@+id/etSignInUser"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="40dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="Email/Username"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+
+                        <EditText
+                            android:id="@+id/etSignInPass"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="Password"
+                            android:inputType="textPassword"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <CheckBox
+                                android:id="@+id/cbRememberMe"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Remember me"
+                                android:textColor="@color/white" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnForgot"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Forgot Password?"
+                                android:textAllCaps="false"
+                                android:textColor="@color/white" />
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btnSignInGoogle"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="50dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:text="Sign In with Google"
+                            android:textColor="@color/white"
+                            android:textSize="16dp"
+                            android:textStyle="bold"
+                            app:cornerRadius="25dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layoutSignUpFields"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="50dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <EditText
+                            android:id="@+id/etFirstName"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="40dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="First Name"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+
+                        <EditText
+                            android:id="@+id/etLastName"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="Last Name"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+
+                        <EditText
+                            android:id="@+id/etUserSignUp"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="Username"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+
+                        <EditText
+                            android:id="@+id/etEmailSignUp"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="Email"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+
+                        <EditText
+                            android:id="@+id/etPassSignUp"
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="16dp"
+                            android:background="@drawable/bg_tab_indicator"
+                            android:hint="Password"
+                            android:inputType="textPassword"
+                            android:paddingStart="20dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnMainAction"
+                        android:layout_width="match_parent"
+                        android:layout_height="55dp"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginBottom="24dp"
+                        android:background="@drawable/bg_tab_indicator"
+                        android:text="Sign In"
+                        android:textColor="@color/white"
+                        android:textSize="16dp"
+                        android:textStyle="bold"
+                        app:cornerRadius="25dp" />
+
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

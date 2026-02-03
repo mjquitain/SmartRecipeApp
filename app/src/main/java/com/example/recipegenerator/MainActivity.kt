@@ -1,47 +1,90 @@
 package com.example.recipegenerator
 
+import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
+import android.view.View
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+
+    // Define variables for your UI elements
+    private lateinit var btnToggleSignIn: Button
+    private lateinit var btnToggleSignUp: Button
+    private lateinit var btnMainAction: Button
+    private lateinit var btnBack: ImageButton
+    private lateinit var tvTitle: TextView
+    private lateinit var tvSubTitle: TextView
+    private lateinit var layoutSignInFields: LinearLayout
+    private lateinit var layoutSignUpFields: LinearLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            RecipeGeneratorTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+        setContentView(R.layout.activity_main)
+
+        // Initialize views
+        btnToggleSignIn = findViewById(R.id.btnToggleSignIn)
+        btnToggleSignUp = findViewById(R.id.btnToggleSignUp)
+        btnMainAction = findViewById(R.id.btnMainAction)
+        btnBack = findViewById(R.id.btnBack)
+        tvTitle = findViewById(R.id.Title)
+        tvSubTitle = findViewById(R.id.Subtitle)
+        layoutSignInFields = findViewById(R.id.layoutSignInFields)
+        layoutSignUpFields = findViewById(R.id.layoutSignUpFields)
+
+        // Set initial state
+        updateToggleUI(isSignIn = true)
+
+        btnToggleSignIn.setOnClickListener {
+            updateToggleUI(isSignIn = true)
+        }
+
+        btnToggleSignUp.setOnClickListener {
+            updateToggleUI(isSignIn = false)
+        }
+
+        btnMainAction.setOnClickListener {
+            val intent = Intent(this, HomeActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
+
+        btnBack.setOnClickListener {
+            finish()
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun updateToggleUI(isSignIn: Boolean) {
+        if (isSignIn) {
+            // UI Toggle Colors
+            btnToggleSignIn.setBackgroundResource(R.drawable.bg_tab_container)
+            btnToggleSignIn.setTextColor(Color.WHITE)
+            btnToggleSignUp.background = null
+            btnToggleSignUp.setTextColor(Color.BLACK)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    RecipeGeneratorTheme {
-        Greeting("Android")
+            // Content Swap
+            tvTitle.text = getString(R.string.signin_title)
+            tvSubTitle.text = "Ready to cook something good? Let's check your ingredients and find out what you can eat."
+            btnMainAction.text = "Sign In"
+            layoutSignInFields.visibility = View.VISIBLE
+            layoutSignUpFields.visibility = View.GONE
+        } else {
+            // UI Toggle Colors
+            btnToggleSignUp.setBackgroundResource(R.drawable.bg_tab_container)
+            btnToggleSignUp.setTextColor(Color.WHITE)
+            btnToggleSignIn.background = null
+            btnToggleSignIn.setTextColor(Color.BLACK)
+
+            // Content Swap
+            tvTitle.text = getString(R.string.signup_title)
+            tvSubTitle.text = "Wanna start cooking smarter? Sign up to track ingredients and find safe recipes."
+            btnMainAction.text = "Sign Up"
+            layoutSignInFields.visibility = View.GONE
+            layoutSignUpFields.visibility = View.VISIBLE
+        }
     }
 }
