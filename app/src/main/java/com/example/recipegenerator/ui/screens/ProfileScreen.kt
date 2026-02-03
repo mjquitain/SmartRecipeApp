@@ -1,5 +1,6 @@
-package com.example.recipegenerator.ui
+package com.example.recipegenerator.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,20 +35,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.example.recipegenerator.navigation.SettingsGraph
+import com.example.recipegenerator.ui.components.OptionItem
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
+import kotlinx.serialization.Serializable
+import kotlin.reflect.KClass
 
 
-
-// TODO: Maybe store this in a "namespace" object? At least both the object and this function can
-//   be linked in navigation nodes. Maybe like "ProfileNavNode.ProfilePage()"?
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfilePage(
+fun ProfileScreen(
     padding : PaddingValues = PaddingValues(),
+    navController : NavController,
     onBackClick : () -> Unit = {},
     onLogOutClick : () -> Unit = {}, // Passed to all notifications. Only after being able to store notification messages temporarily will this be relevant.
 ) {
@@ -68,8 +72,10 @@ fun ProfilePage(
                         )
                     }
                 },
-                modifier = Modifier
-                    .shadow(10.dp)
+                // NOTE: Removed shadows for IngredientsListScreen.kt, NotificationsScreen.kt, and
+                //   ProfileScreen.kt to conform to the appearance of other pages.
+//                modifier = Modifier
+//                    .shadow(10.dp)
             )
         },
     ) {
@@ -105,34 +111,39 @@ fun ProfilePage(
             HorizontalDivider()
             // TODO: Somehow make it easy to listen to the click events of these options.
             LazyColumn(modifier = Modifier.weight(1f)) {
-                item {ListItem(
-                    headlineContent = {Text("Account Settings")},
-                    leadingContent = {Icon(imageVector = Icons.Outlined.AccountCircle, contentDescription = null)},
-                    trailingContent = {Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)}
-                )}
-                item {ListItem(
-                    headlineContent = {Text("Dietary Restrictions")},
-                    leadingContent = {Icon(imageVector = Icons.Outlined.Warning, contentDescription = null)},
-                    trailingContent = {Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)}
-                )}
-                item {ListItem(
-                    headlineContent = {Text("Application Settings")},
-                    leadingContent = {Icon(imageVector = Icons.Outlined.Settings, contentDescription = null)},
-                    trailingContent = {Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)}
-                )}
-                item {ListItem(
-                    headlineContent = {Text("Notifications & Alerts")},
-                    leadingContent = {Icon(imageVector = Icons.Outlined.Notifications, contentDescription = null)},
-                    trailingContent = {Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)}
-                )}
+                item { OptionItem(
+                    "Account Settings",
+                    Icons.Outlined.AccountCircle,
+                    navController, null
+                ) }// SettingsGraph.NotificationsNode
+
+                item { OptionItem(
+                    "Dietary Restrictions",
+                    Icons.Outlined.Warning,
+                    navController, null
+                ) }
+
+                item { OptionItem(
+                    "Application Settings",
+                    Icons.Outlined.Settings,
+                    navController, null
+                ) }
+
+                item { OptionItem(
+                    "Notifications & Alerts",
+                    Icons.Outlined.Settings,
+                    navController, SettingsGraph.NotificationsNode
+                ) }
+
                 /* TODO: Should this be inside an "Appearance Settings" page instead?
                      Also, probably better if the icon is other than a generic Info.
                      Install that one package with extra icons.*/
-                item {ListItem(
-                    headlineContent = {Text("Use Night Mode")},
-                    leadingContent = {Icon(imageVector = Icons.Outlined.Info, contentDescription = null)},
-                    trailingContent = {Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)}
-                )}
+
+                item { OptionItem(
+                    "Use Night Mode",
+                    Icons.Outlined.Info,
+                    {/* TODO: Implement night mode here */},
+                ) {/* TODO: Implement toggle here */} }
             }
             HorizontalDivider()
             Box(Modifier.fillMaxWidth().padding(10.dp)) {
@@ -146,8 +157,8 @@ fun ProfilePage(
 
 @Composable
 @Preview(showBackground = true)
-fun ProfilePagePreview() {
+fun ProfileScreenPreview() {
     RecipeGeneratorTheme(darkTheme = false, dynamicColor = false) {
-        ProfilePage()
+        ProfileScreen(navController = rememberNavController())
     }
 }

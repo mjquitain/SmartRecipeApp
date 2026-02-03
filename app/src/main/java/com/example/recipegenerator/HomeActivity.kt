@@ -4,31 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.recipegenerator.ui.screens.HomeScreen
-import com.example.recipegenerator.ui.screens.RecipeGenerationScreen
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.rememberNavController
+import com.example.recipegenerator.navigation.LandingGraph
+import com.example.recipegenerator.navigation._ROOTGRAPH
+import com.example.recipegenerator.navigation.naviSetHomeDestinations
+import com.example.recipegenerator.navigation.naviSetSettingsDestinations
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
 
-/**
- * HomeActivity - Contains your Compose screens
- * Navigated to from MainActivity after login
- */
+
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,172 +26,91 @@ class HomeActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation()
-                }
-            }
-        }
-    }
-}
+                    val rootNavigationNode = rememberNavController()
 
-@Composable
-fun AppNavigation() {
-    // Simple navigation between your screens
-    var currentScreen by remember { mutableStateOf("home") }
-
-    Scaffold(
-        bottomBar = {
-            CircularBottomNavigationBar(
-                currentScreen = currentScreen,
-                onNavigate = { screen -> currentScreen = screen }
-            )
-        }
-    ) { paddingValues ->
-        when (currentScreen) {
-            "ingredients" -> {
-                // TODO: Your team will add ingredients screen
-                // For now, show placeholder
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    NavHost(
+                        route = _ROOTGRAPH::class,
+                        startDestination = LandingGraph,
+                        navController = rootNavigationNode,
                     ) {
-                        Icon(
-                            Icons.Default.List,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            "Ingredients Screen",
-                            fontSize = 20.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            "Coming soon...",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                        naviSetHomeDestinations(upperNavController = rootNavigationNode)
+                        naviSetSettingsDestinations(navigationNode = rootNavigationNode)
                     }
                 }
             }
-            "home" -> {
-                // HomeScreen = "Want to look for a meal?" page
-                HomeScreen(
-                    padding = paddingValues,
-                    onProfileClick = {
-                        // TODO: Your team will add profile screen
-                        println("Navigate to profile")
-                    },
-                    onNavigateToRecipes = {
-                        currentScreen = "recipes"
-                    }
-                )
-            }
-            "recipes" -> {
-                // RecipeGenerationScreen = Available/Favorite Recipes
-                RecipeGenerationScreen(
-                    padding = paddingValues,
-                    onProfileClick = {
-                        // TODO: Your team will add profile screen
-                        println("Navigate to profile")
-                    },
-                    onRecipeClick = { recipe ->
-                        // TODO: Your team will add recipe details screen
-                        println("Navigate to recipe details: ${recipe.name}")
-                    },
-                    onNavigateToHome = {
-                        currentScreen = "home"
-                    }
-                )
-            }
         }
     }
 }
 
-@Composable
-fun CircularBottomNavigationBar(
-    currentScreen: String,
-    onNavigate: (String) -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(90.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // Oval container
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(70.dp)
-                .align(Alignment.Center),
-            color = Color.White,
-            shadowElevation = 8.dp,
-            shape = RoundedCornerShape(50.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left - Recipes
-                NavigationItem(
-                    icon = Icons.Default.Email,
-                    label = "Recipes",
-                    isSelected = currentScreen == "recipes",
-                    onClick = { onNavigate("recipes") }
-                )
 
-                // Center - Home
-                NavigationItem(
-                    icon = Icons.Default.Home,
-                    label = "Home",
-                    isSelected = currentScreen == "home",
-                    onClick = { onNavigate("home") }
-                )
 
-                // Right - Ingredients
-                NavigationItem(
-                    icon = Icons.Default.List,
-                    label = "Ingredients",
-                    isSelected = currentScreen == "ingredients",
-                    onClick = { onNavigate("ingredients") }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun NavigationItem(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .clip(CircleShape)
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else Color.Transparent
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (isSelected) Color.White else Color.Gray,
-            modifier = Modifier.size(28.dp)
-        )
-    }
-}
+// NOTE: Moved AppNavigation to its own file for encapsulation.
+// For AppNavigation and its components, see recipegenerator/navigation/NaviSetHomeDestinations.kt
+//
+// For SettingsNavigation, see recipegenerator/navigation/NaviSetSettingsDestinations.kt
+//@Composable
+//fun AppNavigation(
+//    navigationNode : NavHostController
+//) {
+//    val composeAndroidContext = LocalContext.current
+//
+//
+//
+//    Scaffold(
+//        bottomBar = {
+//            CircularBottomNavigationBar(
+//                currentDestination = navigationNode.currentDestination,
+//                onNavigate = {
+//                    screen -> navigationNode.navigate(screen)
+//                }
+//            )
+//        }
+//    ) {
+//        paddingValues -> NavHost(
+//            navController = navigationNode,
+//            route = LandingGraph::class,
+//            startDestination = LandingGraph.HomeNode,
+//        ) {
+//            composable<LandingGraph.HomeNode> { HomeScreen(
+//                padding = paddingValues,
+//                onProfileClick = {
+//                    navigationNode.navigate(SettingsGraph)
+//                },
+//                onNavigateToRecipes = {
+//                    navigationNode.navigate(LandingGraph.RecipesNode)
+//                }
+//            ) }
+//
+//            composable<LandingGraph.IngredientsNode> { IngredientsListScreen(
+//                padding = paddingValues,
+//                onAddClick = {
+//                    // TODO: Insert add ingredient logic here.
+//                    Toast.makeText(
+//                        composeAndroidContext,
+//                        "TODO: Insert recipe details here\n\nResponse test for add ingredient",
+//                        4
+//                    )
+//                }
+//            ) }
+//
+//            composable<LandingGraph.RecipesNode> { RecipeGenerationScreen(
+//                padding = paddingValues,
+//                onProfileClick = {
+//
+//                },
+//                onRecipeClick = { recipe ->
+//                    // TODO: Insert recipe details here
+//                    //println("Navigate to recipe details: ${recipe.name}")
+//                    Toast.makeText(
+//                        composeAndroidContext,
+//                        "TODO: Insert recipe details here\n\nNavigate to recipe details: ${recipe.name}",
+//                        5
+//                    )
+//                },
+//                onNavigateToHome = {
+//                    navigationNode.navigate(LandingGraph.HomeNode)
+//                }
+//            ) }
+//        }
+//    }
+//}
