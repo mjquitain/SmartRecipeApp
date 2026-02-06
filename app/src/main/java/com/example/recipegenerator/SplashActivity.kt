@@ -17,9 +17,16 @@ class SplashActivity : AppCompatActivity() {
         binding= ActivitySplashBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val sharedPref = getSharedPreferences("UserPrefs", MODE_PRIVATE)
+        val isRemembered = sharedPref.getBoolean("is_remembered", false)
 
-        binding.startBtn.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
+        if (isRemembered) {
+            startActivity(Intent(this, HomeActivity::class.java))
+        } else {
+            binding.startBtn.setOnClickListener {
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            }
         }
     }
 }

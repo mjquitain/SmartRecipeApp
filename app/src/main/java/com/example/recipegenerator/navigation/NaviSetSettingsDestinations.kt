@@ -11,14 +11,15 @@ import com.example.recipegenerator.ui.screens.NotificationsScreen
 import com.example.recipegenerator.ui.screens.ProfileScreen
 
 
-fun NavGraphBuilder.naviSetSettingsDestinations(navigationNode : NavController) {
+fun NavGraphBuilder.naviSetSettingsDestinations(navigationNode : NavController, onLogOut: () -> Unit) {
     navigation(
         startDestination = SettingsGraph.ProfileNode,
         route = SettingsGraph::class
     ) {
         composable<SettingsGraph.ProfileNode> { ProfileScreen(
             onBackClick = { navigationNode.popBackStack() },
-            navController = navigationNode
+            navController = navigationNode,
+            onLogOutClick = onLogOut
         ) }
 
         composable<SettingsGraph.NotificationsNode> { NotificationsScreen(
