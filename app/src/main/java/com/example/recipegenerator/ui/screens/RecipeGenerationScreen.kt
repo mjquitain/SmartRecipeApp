@@ -88,7 +88,7 @@ fun RecipeGenerationScreen(
             .padding(padding),
         topBar = {
             TopAppBar(
-                title = { Text("Lorem Ipsum", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                title = { Text("Recipe Dashboard", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { /* TODO: Share */ }) {
                         Icon(Icons.Default.Share, "Share")
