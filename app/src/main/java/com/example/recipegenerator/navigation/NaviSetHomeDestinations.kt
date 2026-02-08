@@ -77,10 +77,10 @@ fun NavGraphBuilder.naviSetHomeDestinations(paddingValues : PaddingValues = Padd
                             // TODO: Insert add ingredient logic here.
                             Toast.makeText(
                                 composeAndroidContext,
-                                "TODO: Insert recipe details here\n\nResponse test for add ingredient",
-                                4
-                            )
-                        }
+                                "TODO: Insert ingredient details here\nResponse test for add ingredient",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
                     )
                 }
 
@@ -97,9 +97,9 @@ fun NavGraphBuilder.naviSetHomeDestinations(paddingValues : PaddingValues = Padd
                             //println("Navigate to recipe details: ${recipe.name}")
                             Toast.makeText(
                                 composeAndroidContext,
-                                "TODO: Insert recipe details here\n\nNavigate to recipe details: ${recipe.name}",
-                                5
-                            )
+                                "TODO: Insert recipe details here\nNavigate to recipe details: ${recipe.name}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         },
                         onNavigateToHome = {
                             localNavController.navigate(LandingGraph.HomeNode)
