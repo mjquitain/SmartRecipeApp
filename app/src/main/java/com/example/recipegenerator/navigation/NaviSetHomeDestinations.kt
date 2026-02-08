@@ -90,7 +90,7 @@ fun NavGraphBuilder.naviSetHomeDestinations(paddingValues : PaddingValues = Padd
                     RecipeGenerationScreen(
                         padding = paddingValues,
                         onProfileClick = {
-
+                            upperNavController.navigate(SettingsGraph)
                         },
                         onRecipeClick = { recipe ->
                             // TODO: Insert recipe details here
