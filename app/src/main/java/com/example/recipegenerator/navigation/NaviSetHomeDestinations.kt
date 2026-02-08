@@ -51,7 +51,7 @@ fun NavGraphBuilder.naviSetHomeDestinations(paddingValues : PaddingValues = Padd
         Scaffold(
             bottomBar = { CircularBottomNavigationBar(localNavController) }
         ) {
-            NavHost(
+            paddingValues -> NavHost(
                 startDestination = LandingGraph.HomeNode,
                 route = LandingGraph::class,
                 navController = localNavController
