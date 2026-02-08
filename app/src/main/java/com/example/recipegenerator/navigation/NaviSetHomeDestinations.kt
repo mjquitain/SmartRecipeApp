@@ -89,6 +89,9 @@ fun NavGraphBuilder.naviSetHomeDestinations(paddingValues : PaddingValues = Padd
 
                     RecipeGenerationScreen(
                         padding = paddingValues,
+                        // FIXME: So far, the navigator does not return to the recipe page after
+                        //  going back from the profile page, only if initially accessed from here.
+                        //  Need more research on state persistence.
                         onProfileClick = {
                             upperNavController.navigate(SettingsGraph)
                         },
