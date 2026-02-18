@@ -51,65 +51,68 @@ fun NavGraphBuilder.naviSetHomeDestinations(paddingValues : PaddingValues = Padd
         Scaffold(
             bottomBar = { CircularBottomNavigationBar(localNavController) }
         ) {
-            paddingValues -> NavHost(
-                startDestination = LandingGraph.HomeNode,
-                route = LandingGraph::class,
-                navController = localNavController
-            ) {
-                composable<LandingGraph.HomeNode> {
-                    HomeScreen(
-                        padding = paddingValues,
-                        onProfileClick = {
-                            upperNavController.navigate(SettingsGraph)
-                        },
-                        onNavigateToRecipes = {
-                            localNavController.navigate(LandingGraph.RecipesNode)
-                        }
-                    )
-                }
-
-                composable<LandingGraph.IngredientsNode> {
-                    val composeAndroidContext = LocalContext.current
-
-                    IngredientsListScreen(
-                        padding = paddingValues,
-                        onAddClick = {
-                            // TODO: Insert add ingredient logic here.
-                            Toast.makeText(
-                                composeAndroidContext,
-                                "TODO: Insert ingredient details here\nResponse test for add ingredient",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                    )
-                }
-
-                composable<LandingGraph.RecipesNode> {
-                    val composeAndroidContext = LocalContext.current
-
-                    RecipeGenerationScreen(
-                        padding = paddingValues,
-                        // FIXME: So far, the navigator does not return to the recipe page after
-                        //  going back from the profile page, only if initially accessed from here.
-                        //  Need more research on state persistence.
-                        onProfileClick = {
-                            upperNavController.navigate(SettingsGraph)
-                        },
-                        onRecipeClick = { recipe ->
-                            // TODO: Insert recipe details here
-                            //println("Navigate to recipe details: ${recipe.name}")
-                            Toast.makeText(
-                                composeAndroidContext,
-                                "TODO: Insert recipe details here\nNavigate to recipe details: ${recipe.name}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        },
-                        onNavigateToHome = {
-                            localNavController.navigate(LandingGraph.HomeNode)
-                        }
-                    )
-                }
+                paddingValues -> NavHost(
+            startDestination = LandingGraph.HomeNode,
+            route = LandingGraph::class,
+            navController = localNavController
+        ) {
+            composable<LandingGraph.HomeNode> {
+                HomeScreen(
+                    padding = paddingValues,
+                    onProfileClick = {
+                        upperNavController.navigate(SettingsGraph)
+                    },
+                    onNavigateToRecipes = {
+                        localNavController.navigate(LandingGraph.RecipesNode)
+                    }
+                )
             }
+
+            composable<LandingGraph.IngredientsNode> {
+                val composeAndroidContext = LocalContext.current
+
+                IngredientsListScreen(
+                    padding = paddingValues,
+                    onAddClick = {
+                        // TODO: Insert add ingredient logic here.
+                        Toast.makeText(
+                            composeAndroidContext,
+                            "TODO: Insert ingredient details here\nResponse test for add ingredient",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    onProfileClick = {
+                        upperNavController.navigate(SettingsGraph)
+                    }
+                )
+            }
+
+            composable<LandingGraph.RecipesNode> {
+                val composeAndroidContext = LocalContext.current
+
+                RecipeGenerationScreen(
+                    padding = paddingValues,
+                    // FIXME: So far, the navigator does not return to the recipe page after
+                    //  going back from the profile page, only if initially accessed from here.
+                    //  Need more research on state persistence.
+                    onProfileClick = {
+                        upperNavController.navigate(SettingsGraph)
+                    },
+                    onRecipeClick = { recipe ->
+                        // TODO: Insert recipe details here
+                        //println("Navigate to recipe details: ${recipe.name}")
+                        Toast.makeText(
+                            composeAndroidContext,
+                            "TODO: Insert recipe details here\nNavigate to recipe details: ${recipe.name}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    },
+                    onNavigateToHome = {
+                        localNavController.navigate(LandingGraph.HomeNode)
+                    }
+                )
+            }
+        }
         }
     }
 }

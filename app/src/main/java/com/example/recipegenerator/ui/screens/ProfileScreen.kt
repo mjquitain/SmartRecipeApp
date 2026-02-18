@@ -1,60 +1,58 @@
 package com.example.recipegenerator.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.sharp.ArrowBack
-import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.sharp.AccountCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.recipegenerator.navigation.SettingsGraph
 import com.example.recipegenerator.ui.components.OptionItem
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
-import kotlinx.serialization.Serializable
-import kotlin.reflect.KClass
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    padding : PaddingValues = PaddingValues(),
-    navController : NavController,
-    onBackClick : () -> Unit = {},
-    onLogOutClick : () -> Unit = {}, // Passed to all notifications. Only after being able to store notification messages temporarily will this be relevant.
+    padding: PaddingValues = PaddingValues(),
+    navController: NavController,
+    onBackClick: () -> Unit = {},
+    onLogOutClick: () -> Unit = {}
 ) {
+    // User data state
+    var userName by remember { mutableStateOf("Gordon") }
+    var userEmail by remember { mutableStateOf("abc@def.com") }
+
+    // Dialog states
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showDietaryDialog by remember { mutableStateOf(false) }
+
+    // Settings states
+    var nightModeEnabled by remember { mutableStateOf(false) }
+
+    // Dietary restrictions
+    var selectedDietaryRestrictions by remember {
+        mutableStateOf(setOf<String>())
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -63,97 +61,463 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("Profile") },
                 actions = {
-                    IconButton(
-                        onClick = onBackClick
-                    ) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Sharp.ArrowBack,
                             contentDescription = null
                         )
                     }
-                },
-                // NOTE: Removed shadows for IngredientsListScreen.kt, NotificationsScreen.kt, and
-                //   ProfileScreen.kt to conform to the appearance of other pages.
-//                modifier = Modifier
-//                    .shadow(10.dp)
+                }
             )
-        },
+        }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it)
         ) {
+            // Profile Header - Clickable to edit
             Box(
                 Modifier
                     .fillMaxWidth()
                     .height(120.dp)
                     .padding(20.dp)
+                    .clickable { showEditProfileDialog = true }
             ) {
-                Row() {
-                    // TODO: Swap with image when uploading is available?
+                Row {
                     Icon(
                         imageVector = Icons.Sharp.AccountCircle,
                         contentDescription = "profile",
-                        modifier = Modifier
-                            .aspectRatio(1f)
+                        modifier = Modifier.aspectRatio(1f)
                     )
                     Spacer(Modifier.width(20.dp))
                     Column(
                         modifier = Modifier.fillMaxHeight(),
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Gordon", fontSize = 20.sp)
-                        Text("abc@def.com")
+                        Text(userName, fontSize = 20.sp)
+                        Text(userEmail)
                     }
                 }
             }
             HorizontalDivider()
-            // TODO: Somehow make it easy to listen to the click events of these options.
+
             LazyColumn(modifier = Modifier.weight(1f)) {
-                item { OptionItem(
-                    "Account Settings",
-                    Icons.Outlined.AccountCircle,
-                    navController, null
-                ) }// SettingsGraph.NotificationsNode
+                // Account Settings - opens edit dialog
+                item {
+                    OptionItem(
+                        title = "Account Settings",
+                        icon = Icons.Outlined.AccountCircle,
+                        onClick = { showEditProfileDialog = true }
+                    )
+                }
 
-                item { OptionItem(
-                    "Dietary Restrictions",
-                    Icons.Outlined.Warning,
-                    navController, null
-                ) }
+                // Change Password
+                item {
+                    OptionItem(
+                        title = "Change Password",
+                        icon = Icons.Outlined.Lock,
+                        onClick = { showChangePasswordDialog = true }
+                    )
+                }
 
-                item { OptionItem(
-                    "Application Settings",
-                    Icons.Outlined.Settings,
-                    navController, null
-                ) }
+                // Dietary Restrictions
+                item {
+                    OptionItem(
+                        title = "Dietary Restrictions",
+                        icon = Icons.Outlined.Warning,
+                        trailingContent = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (selectedDietaryRestrictions.isNotEmpty()) {
+                                    Text(
+                                        "${selectedDietaryRestrictions.size} active",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        onClick = { showDietaryDialog = true }
+                    )
+                }
 
-                item { OptionItem(
-                    "Notifications & Alerts",
-                    Icons.Outlined.Settings,
-                    navController, SettingsGraph.NotificationsNode
-                ) }
+                // Application Settings - placeholder
+                item {
+                    OptionItem(
+                        title = "Application Settings",
+                        icon = Icons.Outlined.Settings,
+                        navController = navController,
+                        destination = null
+                    )
+                }
 
-                /* TODO: Should this be inside an "Appearance Settings" page instead?
-                     Also, probably better if the icon is other than a generic Info.
-                     Install that one package with extra icons.*/
+                // Notifications & Alerts - navigate to notifications screen
+                item {
+                    OptionItem(
+                        title = "Notifications & Alerts",
+                        icon = Icons.Outlined.Settings,
+                        navController = navController,
+                        destination = SettingsGraph.NotificationsNode
+                    )
+                }
 
-                item { OptionItem(
-                    "Use Night Mode",
-                    Icons.Outlined.Info,
-                    {/* TODO: Implement night mode here */},
-                ) {/* TODO: Implement toggle here */} }
+                // Night Mode Toggle
+                item {
+                    ListItem(
+                        headlineContent = { Text("Use Night Mode") },
+                        leadingContent = {
+                            Icon(Icons.Outlined.Info, "Night Mode")
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = nightModeEnabled,
+                                onCheckedChange = { nightModeEnabled = it }
+                            )
+                        }
+                    )
+                }
             }
+
             HorizontalDivider()
             Box(Modifier.fillMaxWidth().padding(10.dp)) {
-                Button(onLogOutClick, modifier = Modifier.fillMaxWidth()) {Text("Log out")}
+                Button(onLogOutClick, modifier = Modifier.fillMaxWidth()) {
+                    Text("Log out")
+                }
+            }
+        }
+    }
+
+    // Edit Profile Dialog
+    if (showEditProfileDialog) {
+        EditProfileDialog(
+            currentName = userName,
+            currentEmail = userEmail,
+            onDismiss = { showEditProfileDialog = false },
+            onSave = { name, email ->
+                userName = name
+                userEmail = email
+                showEditProfileDialog = false
+            }
+        )
+    }
+
+    // Change Password Dialog
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            onDismiss = { showChangePasswordDialog = false },
+            onSave = {
+                showChangePasswordDialog = false
+                // TODO: Implement password change logic
+            }
+        )
+    }
+
+    // Dietary Restrictions Dialog
+    if (showDietaryDialog) {
+        DietaryRestrictionsDialog(
+            selectedRestrictions = selectedDietaryRestrictions,
+            onDismiss = { showDietaryDialog = false },
+            onSave = { restrictions ->
+                selectedDietaryRestrictions = restrictions
+                showDietaryDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun EditProfileDialog(
+    currentName: String,
+    currentEmail: String,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+    var email by remember { mutableStateOf(currentEmail) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Edit Profile", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Outlined.Close, "Close")
+                    }
+                }
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Outlined.Person, "Name") }
+                )
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Outlined.Email, "Email") }
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = { onSave(name, email) },
+                        modifier = Modifier.weight(1f),
+                        enabled = name.isNotBlank() && email.isNotBlank()
+                    ) {
+                        Text("Save")
+                    }
+                }
             }
         }
     }
 }
 
+@Composable
+fun ChangePasswordDialog(
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showCurrentPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
 
+    val passwordsMatch = newPassword == confirmPassword && newPassword.isNotBlank()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Change Password", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Outlined.Close, "Close")
+                    }
+                }
+
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = { currentPassword = it },
+                    label = { Text("Current Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (showCurrentPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showCurrentPassword = !showCurrentPassword }) {
+                            Icon(
+                                if (showCurrentPassword) Icons.Outlined.Face else Icons.Outlined.Lock,
+                                "Toggle password visibility"
+                            )
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = { Text("New Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showNewPassword = !showNewPassword }) {
+                            Icon(
+                                if (showNewPassword) Icons.Outlined.Face else Icons.Outlined.Lock,
+                                "Toggle password visibility"
+                            )
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm New Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                            Icon(
+                                if (showConfirmPassword) Icons.Outlined.Face else Icons.Outlined.Lock,
+                                "Toggle password visibility"
+                            )
+                        }
+                    },
+                    isError = confirmPassword.isNotBlank() && !passwordsMatch,
+                    supportingText = {
+                        if (confirmPassword.isNotBlank() && !passwordsMatch) {
+                            Text("Passwords don't match", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = onSave,
+                        modifier = Modifier.weight(1f),
+                        enabled = currentPassword.isNotBlank() && passwordsMatch
+                    ) {
+                        Text("Change")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DietaryRestrictionsDialog(
+    selectedRestrictions: Set<String>,
+    onDismiss: () -> Unit,
+    onSave: (Set<String>) -> Unit
+) {
+    var restrictions by remember { mutableStateOf(selectedRestrictions) }
+
+    val availableRestrictions = listOf(
+        "Vegetarian",
+        "Vegan",
+        "Gluten-Free",
+        "Dairy-Free",
+        "Nut Allergy",
+        "Shellfish Allergy",
+        "Egg Allergy",
+        "Soy Allergy",
+        "Halal",
+        "Kosher",
+        "Low-Carb",
+        "Keto",
+        "Paleo"
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Dietary Restrictions", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Outlined.Close, "Close")
+                    }
+                }
+
+                Text(
+                    "Select all that apply:",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    availableRestrictions.chunked(2).forEach { rowRestrictions ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowRestrictions.forEach { restriction ->
+                                FilterChip(
+                                    selected = restriction in restrictions,
+                                    onClick = {
+                                        restrictions = if (restriction in restrictions) {
+                                            restrictions - restriction
+                                        } else {
+                                            restrictions + restriction
+                                        }
+                                    },
+                                    label = { Text(restriction) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            // Add spacer if odd number
+                            if (rowRestrictions.size == 1) {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            restrictions = emptySet()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Clear All")
+                    }
+                    Button(
+                        onClick = { onSave(restrictions) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save")
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 @Preview(showBackground = true)
