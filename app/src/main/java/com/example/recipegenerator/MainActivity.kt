@@ -1,5 +1,7 @@
 package com.example.recipegenerator
 
+import kotlinx.coroutines.flow.first
+
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -13,6 +15,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
+
+// Room Test
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.example.recipegenerator.data.AppDatabase
+import com.example.recipegenerator.data.entity.IngredientEntity
 
 class MainActivity : AppCompatActivity() {
 
@@ -41,6 +50,28 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Room Test Connection
+        val db = AppDatabase.getDatabase(this)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            // INSERT
+            db.ingredientDao().insertIngredient(
+                IngredientEntity(
+                    name = "Tomato",
+                    category = "Vegetable",
+                    quantity = "3",
+                    unit = "pcs",
+                    expirationDate = "2025-03-01"
+                )
+            )
+
+            // READ
+            val list = db.ingredientDao().getAllIngredients().first()
+                list.forEach {
+                    android.util.Log.d("RoomTest", "Ingredient: ${it.name}, qty: ${it.quantity}")
+                }
+            }
 
         // Initialize views
         btnToggleSignIn = findViewById(R.id.btnToggleSignIn)

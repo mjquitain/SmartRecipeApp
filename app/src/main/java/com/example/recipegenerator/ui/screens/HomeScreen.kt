@@ -4,9 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,27 +19,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.recipegenerator.model.Recipe
-import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
+import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
 
-/**
- * HomeScreen - Recipe Generation Page
- * "Want to look for a meal?" - ingredient input and recipe generation
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     padding: PaddingValues = PaddingValues(),
+    recipeViewModel: RecipeViewModel,          // Injected from NaviSetHomeDestinations
     onProfileClick: () -> Unit = {},
     onNavigateToRecipes: () -> Unit = {}
 ) {
     var inputText by remember { mutableStateOf("") }
     var selectedIngredients by remember { mutableStateOf(setOf<String>()) }
-    var generatedRecipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
 
+    // Observing ViewModel StateFlows
+    val isLoading by recipeViewModel.isLoading.collectAsState()
+    val errorMessage by recipeViewModel.errorMessage.collectAsState()
+
+    // Quick-select ingredient suggestions
     val availableIngredients = listOf(
         "chicken", "egg", "spinach", "cucumber",
         "tomato", "onion", "garlic", "beef",
@@ -112,7 +108,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Input Field
+                    // Manual ingredient input field
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
@@ -137,7 +133,7 @@ fun HomeScreen(
                         )
                     )
 
-                    // Selected Ingredients
+                    // Chips showing what the user has selected — tap to remove
                     if (selectedIngredients.isNotEmpty()) {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(selectedIngredients.toList()) { ingredient ->
@@ -155,6 +151,7 @@ fun HomeScreen(
 
                     Text("Available Ingredients:", fontSize = 12.sp, fontWeight = FontWeight.Medium)
 
+                    // Quick-select chips
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(availableIngredients) { ingredient ->
                             FilterChip(
@@ -171,117 +168,108 @@ fun HomeScreen(
                         }
                     }
 
-                    // Generate Button
                     Button(
                         onClick = {
-                            generatedRecipes = listOf(
-                                Recipe(id = "g1", name = "${selectedIngredients.firstOrNull() ?: "Chicken"} Salad", description = "Fresh and healthy", cookingTime = 20, difficulty = "Easy"),
-                                Recipe(id = "g2", name = "${selectedIngredients.elementAtOrNull(1) ?: "Egg"} Fried Rice", description = "Quick and easy", cookingTime = 25, difficulty = "Easy"),
-                                Recipe(id = "g3", name = "${selectedIngredients.firstOrNull() ?: "Spinach"} Soup", description = "Nutritious meal", cookingTime = 30, difficulty = "Medium"),
-                                Recipe(id = "g4", name = "Mixed Vegetable Stir Fry", description = "Healthy combo", cookingTime = 15, difficulty = "Easy")
-                            )
+                            if (selectedIngredients.isNotEmpty()) {
+                                recipeViewModel.filterByIngredient(selectedIngredients.first())
+                                onNavigateToRecipes()
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = selectedIngredients.isNotEmpty()
+                        enabled = selectedIngredients.isNotEmpty() && !isLoading
                     ) {
-                        Text("Generate Recipes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Generate Recipes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }
 
-            // Generated Recipes
+            // Status section below the card
+            // Shows loading spinner, error message, or default empty hint
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Generated Recipes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                if (generatedRecipes.isNotEmpty()) {
-                    TextButton(onClick = { generatedRecipes = emptyList() }) {
-                        Text("Clear", fontSize = 12.sp)
-                    }
-                }
             }
 
-            if (generatedRecipes.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+            when {
+                isLoading -> {
+                    // API call in progress
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Search, null, modifier = Modifier.size(48.dp), tint = Color.Gray.copy(alpha = 0.5f))
-                        Text("No recipes generated yet", fontSize = 14.sp, color = Color.Gray)
-                        Text("Select ingredients and click Generate", fontSize = 12.sp, color = Color.Gray)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text("Searching for recipes...", fontSize = 14.sp, color = Color.Gray)
+                        }
                     }
                 }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.height(400.dp)
-                ) {
-                    items(generatedRecipes) { recipe ->
-                        SimpleRecipeCard(recipe = recipe, onClick = onNavigateToRecipes)
+
+                errorMessage != null -> {
+                    // API call failed
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Warning, null,
+                                modifier = Modifier.size(48.dp),
+                                tint = Color.Red.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                errorMessage ?: "Something went wrong",
+                                fontSize = 14.sp,
+                                color = Color.Red
+                            )
+                            TextButton(onClick = { recipeViewModel.clearError() }) {
+                                Text("Dismiss")
+                            }
+                        }
+                    }
+                }
+
+                else -> {
+                    // Default idle state — no search done yet
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Search, null,
+                                modifier = Modifier.size(48.dp),
+                                tint = Color.Gray.copy(alpha = 0.5f)
+                            )
+                            Text("No recipes generated yet", fontSize = 14.sp, color = Color.Gray)
+                            Text("Select ingredients and click Generate", fontSize = 12.sp, color = Color.Gray)
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SimpleRecipeCard(
-    recipe: Recipe,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.85f)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.LightGray.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.7f)
-                    .background(Color.LightGray.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Home, null, modifier = Modifier.size(48.dp), tint = Color.Gray.copy(alpha = 0.5f))
-            }
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.9f))
-                    .padding(8.dp)
-            ) {
-                Text(recipe.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("${recipe.cookingTime} min • ${recipe.difficulty}", fontSize = 11.sp, color = Color.Gray)
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    RecipeGeneratorTheme(darkTheme = false, dynamicColor = false) {
-        HomeScreen()
     }
 }
