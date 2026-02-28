@@ -429,3 +429,10 @@ fun FilterDialog(
         }
     }
 }
+
+
+@Preview(showBackground = true)
+@Composable
+fun Ingredit() {
+    IngredientDialog("Sample", null, {}, {})
+}
