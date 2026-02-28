@@ -1,5 +1,6 @@
 package com.example.recipegenerator.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -27,7 +28,43 @@ import com.example.recipegenerator.data.entity.IngredientEntity
 import com.example.recipegenerator.ui.components.MinimalListItem
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.*
+
+private val expirationDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
+
+
+
+
+private val expiryMarkerPalatableColor = Color(0.3f, 0.9f, 0.1f)
+private val expiryMarkerWeekBeforeExpiringColor = Color(0.9f, 0.9f, 0.1f)
+private val expiryMarkerHalfWeekBeforeExpiringColor = Color(0.9f, 0.5f, 0.1f)
+private val expiryMarkerExpiredColor = Color(0.9f, 0.1f, 0.1f)
+private val expiryMarkerUnspecifiedColor = Color(0.2f, 0.4f, 0.7f)
+private val expiryMarkerExceptionColor = Color(1f, 0f, 1f)
+
+
+
+private fun _tryGetDate(from : String) : LocalDate? {
+    return try {
+        LocalDate.parse(from, expirationDateFormat)
+    } catch (parseError : DateTimeParseException) {
+        null
+    }
+}
+
+// This will return only between -1 to whatever is the max number
+// of an integer/long. -1 will mark the entry as expired. It is
+// limited to -1 and above to keep negative numbers reserved for
+// other exceptions. -2 is a reserved number to mean "Unspecified".
+// Numbers even lower are just exception numbers.
+private fun _getRelativeLifespanFromString(dateString : String) : Long {
+    if (dateString.isBlank()) { return -2L }
+    val date = _tryGetDate(dateString) ?: return -3L
+    return max(date.minusDays(LocalDate.now().toEpochDay()).toEpochDay(), -1)
+}
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,19 +258,17 @@ fun IngredientListItem(
         .fillMaxHeight()
         .background(MaterialTheme.colorScheme.primary)
 
-    val daysUntilExpiration = try {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val expDate = sdf.parse(ingredient.expirationDate)
-        val today = Date()
-        val diff = expDate!!.time - today.time
-        (diff / (1000 * 60 * 60 * 24)).toInt()
-    } catch (e: Exception) { 999 }
+    val lifespanOrCode = _getRelativeLifespanFromString(ingredient.expirationDate)
 
     val expirationColor = when {
-        daysUntilExpiration < 0 -> Color(0.9f, 0.1f, 0.1f)
-        daysUntilExpiration <= 3 -> Color(0.9f, 0.5f, 0.1f)
-        daysUntilExpiration <= 7 -> Color(0.9f, 0.9f, 0.1f)
-        else -> Color(0.3f, 0.9f, 0.1f)
+        lifespanOrCode > 7 -> expiryMarkerPalatableColor;
+        lifespanOrCode > 3 -> expiryMarkerWeekBeforeExpiringColor;
+        lifespanOrCode >= 0 -> expiryMarkerHalfWeekBeforeExpiringColor;
+        lifespanOrCode == -1L -> expiryMarkerExpiredColor;
+
+        // Non-lifespan colours
+        lifespanOrCode == -2L -> expiryMarkerUnspecifiedColor;
+        else /* -3 or so */ -> expiryMarkerExceptionColor;
     }
 
     MinimalListItem {
@@ -279,9 +314,15 @@ fun IngredientDialog(
     onDismiss: () -> Unit,
     onSave: (IngredientEntity) -> Unit
 ) {
+    val toastNameRequired = Toast.makeText(LocalContext.current, "Name is required", Toast.LENGTH_SHORT)
+    val toastQuantityRequired = Toast.makeText(LocalContext.current, "Quantity is required", Toast.LENGTH_SHORT)
+    val toastQuantityIsNegative = Toast.makeText(LocalContext.current, "Quantity must be 0.0 or larger.", Toast.LENGTH_SHORT)
+    val toastQuantityMalformed = Toast.makeText(LocalContext.current, "Quantity does not contain a proper number.", Toast.LENGTH_SHORT)
+    val toastExpiryMalformed = Toast.makeText(LocalContext.current, "Expiry date is malformed.", Toast.LENGTH_SHORT)
+
     var name by remember { mutableStateOf(ingredient?.name ?: "") }
     var category by remember { mutableStateOf(ingredient?.category ?: "Vegetable") }
-    var quantity by remember { mutableStateOf(ingredient?.quantity ?: "") }
+    var quantity by remember { mutableStateOf(ingredient?.quantity?.toString() ?: "0.0")}
     var unit by remember { mutableStateOf(ingredient?.unit ?: "g") }
     var expirationDate by remember { mutableStateOf(ingredient?.expirationDate ?: "") }
     var showCategoryMenu by remember { mutableStateOf(false) }
@@ -330,8 +371,10 @@ fun IngredientDialog(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = quantity, onValueChange = { quantity = it },
-                        label = { Text("Quantity") }, modifier = Modifier.weight(1f), singleLine = true
+                        value = quantity,
+                        onValueChange = { quantity = it },
+                        label = { Text("Quantity") },
+                        modifier = Modifier.weight(1f), singleLine = true
                     )
                     ExposedDropdownMenuBox(
                         expanded = showUnitMenu, onExpandedChange = { showUnitMenu = it },
@@ -341,7 +384,6 @@ fun IngredientDialog(
                             value = unit, onValueChange = {}, readOnly = true,
                             label = { Text("Unit") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor()
                         )
                         ExposedDropdownMenu(expanded = showUnitMenu, onDismissRequest = { showUnitMenu = false }) {
                             units.forEach { u ->
@@ -362,21 +404,43 @@ fun IngredientDialog(
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Button(
                         onClick = {
-                            if (name.isNotBlank() && quantity.isNotBlank()) {
-                                onSave(
-                                    IngredientEntity(
-                                        id = ingredient?.id ?: 0,
-                                        name = name,
-                                        category = category,
-                                        quantity = quantity,
-                                        unit = unit,
-                                        expirationDate = expirationDate
-                                    )
-                                )
+                            if (name.isBlank()) {
+                                toastNameRequired.show()
+                                return@Button
+                            } else if (quantity.isBlank()) {
+                                toastQuantityRequired.show()
+                                return@Button
+                            } else if (expirationDate.isNotBlank() && _tryGetDate(expirationDate) == null) {
+                                toastExpiryMalformed.show()
+                                return@Button
                             }
+
+                            val quantityCapture = regexNumeric.find(quantity)
+
+                            if (quantityCapture == null || quantityCapture.groups["number"] == null) {
+                                toastQuantityMalformed.show()
+                                return@Button
+                            }
+
+                            val realQuantity = quantityCapture.groups["number"]!!.value.toDouble()
+
+                            if (realQuantity < 0L) {
+                                toastQuantityIsNegative.show()
+                                return@Button
+                            }
+
+                            onSave(
+                                IngredientEntity(
+                                    id = ingredient?.id ?: 0,
+                                    name = name,
+                                    category = category,
+                                    quantity = quantityCapture.groups["number"]!!.value.toDouble(),
+                                    unit = unit,
+                                    expirationDate = expirationDate
+                                )
+                            )
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank() && quantity.isNotBlank()
+                        modifier = Modifier.weight(1f)
                     ) { Text("Save") }
                 }
             }
