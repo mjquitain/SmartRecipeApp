@@ -452,7 +452,7 @@ private fun LocalRecipeCard(
                     .size(32.dp)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.9f))
-                    .clickable { onFavoriteClick() },
+                    .clickable(onClick = onFavoriteClick),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
