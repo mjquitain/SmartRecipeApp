@@ -98,7 +98,9 @@ fun IngredientsListScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
         topBar = {
             TopAppBar(
                 title = { Text("Ingredients", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
@@ -125,7 +127,9 @@ fun IngredientsListScreen(
 
         Box(modifier = Modifier.padding(it)) {
             Column(
-                modifier = Modifier.padding(16.dp, 20.dp).fillMaxSize(),
+                modifier = Modifier
+                    .padding(16.dp, 20.dp)
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val autoWeight = Modifier.weight(1f)
@@ -140,7 +144,9 @@ fun IngredientsListScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val shrunkenButtonModifier = Modifier.padding(0.dp).size(30.dp)
+                        val shrunkenButtonModifier = Modifier
+                            .padding(0.dp)
+                            .size(30.dp)
                         IconButton(
                             modifier = shrunkenButtonModifier,
                             onClick = { showAddDialog = true }
@@ -258,9 +264,12 @@ fun IngredientListItem(
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
+
     val containerTitleFontSize = 16.sp
     val selectableContainerAlignment = Alignment.CenterVertically
-    val titleContainer = Modifier.fillMaxSize().padding(16.dp, 12.dp)
+    val titleContainer = Modifier
+        .fillMaxSize()
+        .padding(16.dp, 12.dp)
     val actionsContainer = Modifier
         .defaultMinSize(100.dp)
         .width(100.dp)
@@ -296,7 +305,8 @@ fun IngredientListItem(
                 }
                 Spacer(Modifier.width(10.dp))
                 Box(
-                    Modifier.size(20.dp)
+                    Modifier
+                        .size(20.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .background(expirationColor)
                 )
@@ -314,6 +324,7 @@ fun IngredientListItem(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -346,7 +357,8 @@ fun IngredientDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(
@@ -369,7 +381,9 @@ fun IngredientDialog(
                         value = category, onValueChange = {}, readOnly = true,
                         label = { Text("Category") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryMenu) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
                     )
                     ExposedDropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                         categories.forEach { cat ->
@@ -393,6 +407,9 @@ fun IngredientDialog(
                             value = unit, onValueChange = {}, readOnly = true,
                             label = { Text("Unit") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
                         )
                         ExposedDropdownMenu(expanded = showUnitMenu, onDismissRequest = { showUnitMenu = false }) {
                             units.forEach { u ->
