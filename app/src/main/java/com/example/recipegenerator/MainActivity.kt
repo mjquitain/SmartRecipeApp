@@ -54,24 +54,24 @@ class MainActivity : AppCompatActivity() {
         // Room Test Connection
         val db = AppDatabase.getDatabase(this)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            // INSERT
-            db.ingredientDao().insertIngredient(
-                IngredientEntity(
-                    name = "Tomato",
-                    category = "Vegetable",
-                    quantity = "3",
-                    unit = "pcs",
-                    expirationDate = "2025-03-01"
-                )
-            )
-
-            // READ
-            val list = db.ingredientDao().getAllIngredients().first()
-                list.forEach {
-                    android.util.Log.d("RoomTest", "Ingredient: ${it.name}, qty: ${it.quantity}")
-                }
-            }
+//        CoroutineScope(Dispatchers.IO).launch {
+//            // INSERT
+//            db.ingredientDao().insertIngredient(
+//                IngredientEntity(
+//                    name = "Tomato",
+//                    category = "Vegetable",
+//                    quantity = 3.0,
+//                    unit = "pcs",
+//                    expirationDate = "2025-03-01"
+//                )
+//            )
+//
+//            // READ
+//            val list = db.ingredientDao().getAllIngredients().first()
+//                list.forEach {
+//                    android.util.Log.d("RoomTest", "Ingredient: ${it.name}, qty: ${it.quantity}")
+//                }
+//            }
 
         // Initialize views
         btnToggleSignIn = findViewById(R.id.btnToggleSignIn)
