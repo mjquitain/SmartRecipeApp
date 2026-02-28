@@ -20,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -29,12 +31,19 @@ import com.example.recipegenerator.ui.components.MinimalListItem
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoField
 import java.util.*
+import kotlin.math.max
+
 
 private val expirationDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
 
 
 
+private val regexNumeric = Regex("^\\s*(?<number>-?\\d+(?:\\.\\d+)?)\\s*$")
 
 private val expiryMarkerPalatableColor = Color(0.3f, 0.9f, 0.1f)
 private val expiryMarkerWeekBeforeExpiringColor = Color(0.9f, 0.9f, 0.1f)
