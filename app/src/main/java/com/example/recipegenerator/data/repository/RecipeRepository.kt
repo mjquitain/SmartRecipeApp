@@ -3,6 +3,7 @@ package com.example.recipegenerator.data.repository
 import com.example.recipegenerator.data.dao.RecipeDao
 import com.example.recipegenerator.data.entity.RecipeEntity
 import com.example.recipegenerator.network.MealApiService
+import com.example.recipegenerator.network.MealResponse
 import kotlinx.coroutines.flow.Flow
 
 class RecipeRepository(
@@ -27,17 +28,33 @@ class RecipeRepository(
     }
 
     suspend fun toggleFavorite(recipe: RecipeEntity) {
-        recipeDao.updateRecipe(recipe.copy(isFavorite = !recipe.isFavorite))
+        val existingRecipe = recipeDao.getRecipeByRemoteId(recipe.remoteId)
+        if (existingRecipe != null) {
+            recipeDao.deleteRecipe(existingRecipe)
+        } else {
+            recipeDao.insertRecipe(recipe.copy(isFavorite = true))
+        }
+    }
+
+    suspend fun getLocalRecipeById(id: String): RecipeEntity? {
+        val intId = id.toIntOrNull() ?: return null
+        return recipeDao.getRecipeById(intId)
+    }
+
+    suspend fun getLocalRecipeByRemoteId(remoteId: String): RecipeEntity? {
+        return recipeDao.getRecipeByRemoteId(remoteId)
     }
 
     // REMOTE - MealDB API
-    suspend fun searchRecipesByName(name: String) = apiService.searchMealsByName(name)
+    suspend fun searchRecipesByName(query: String) = apiService.searchMealsByName(query)
 
     suspend fun getRecipeById(id: String) = apiService.getMealById(id)
 
-    suspend fun getRandomRecipe() = apiService.getRandomMeal()
-
-    suspend fun filterByCategory(category: String) = apiService.filterByCategory(category)
+    suspend fun filterByCategory(category: String): MealResponse {
+        return apiService.filterByCategory(category)
+        }
 
     suspend fun filterByIngredient(ingredient: String) = apiService.filterByIngredient(ingredient)
+
+    suspend fun getMealDetails(id: String) = apiService.getMealById(id)
 }

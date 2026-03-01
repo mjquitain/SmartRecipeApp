@@ -22,11 +22,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.*
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.*
+import com.example.recipegenerator.data.entity.RecipeEntity
 import com.example.recipegenerator.ui.screens.HomeScreen
 import com.example.recipegenerator.ui.screens.IngredientsListScreen
+import com.example.recipegenerator.ui.screens.RecipeDetailScreen
 import com.example.recipegenerator.ui.screens.RecipeGenerationScreen
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 fun NavGraphBuilder.naviSetHomeDestinations(
     paddingValues: PaddingValues = PaddingValues(),
@@ -78,16 +82,44 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                             upperNavController.navigate(SettingsGraph)
                         },
                         onRecipeClick = { recipe ->
-                            Toast.makeText(
-                                composeAndroidContext,
-                                "TODO: Insert recipe details here\nNavigate to recipe details: ${recipe.name}",
-                                Toast.LENGTH_LONG
-                            ).show()
+//                            Toast.makeText(
+//                                composeAndroidContext,
+//                                "TODO: Insert recipe details here\nNavigate to recipe details: ${recipe.name}",
+//                                Toast.LENGTH_LONG
+//                            ).show()
+                            localNavController.navigate(
+                                LandingGraph.RecipeDetailNode(
+                                    recipeId = recipe.remoteId ?: recipe.id.toString()
+                                )
+                            )
                         },
                         onNavigateToHome = {
                             localNavController.navigate(LandingGraph.HomeNode)
                         }
                     )
+                }
+
+                composable<LandingGraph.RecipeDetailNode> { backStackEntry ->
+                    val selectedRecipe by recipeViewModel.selectedRecipe.collectAsState()
+
+                    if (selectedRecipe != null) {
+                        RecipeDetailScreen(
+                            recipe = selectedRecipe!!,
+                            onBackClick = {
+                                recipeViewModel.onNavigated()
+                            },
+                            onFavoriteClick = {
+                                recipeViewModel.toggleFavorite(selectedRecipe!!)
+                            }
+                        )
+                    } else {
+                        RecipeGenerationScreen(
+                            recipeViewModel = recipeViewModel,
+                            onRecipeClick = { recipe ->
+                                recipeViewModel.selectMeal(recipe.remoteId)
+                            }
+                        )
+                    }
                 }
             }
         }

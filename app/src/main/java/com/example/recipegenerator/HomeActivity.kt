@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.example.recipegenerator.data.AppDatabase
 import com.example.recipegenerator.navigation.LandingGraph
 import com.example.recipegenerator.navigation._ROOTGRAPH
 import com.example.recipegenerator.navigation.naviSetHomeDestinations
@@ -21,6 +22,8 @@ import com.example.recipegenerator.navigation.naviSetSettingsDestinations
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModelFactory
+import com.example.recipegenerator.ui.viewmodel.ProfileViewModel
+import com.example.recipegenerator.ui.viewmodel.ProfileViewModelFactory
 import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
 import com.example.recipegenerator.ui.viewmodel.RecipeViewModelFactory
 
@@ -32,6 +35,15 @@ class HomeActivity : ComponentActivity() {
 
     private val recipeViewModel: RecipeViewModel by viewModels {
         RecipeViewModelFactory((application as RecipeApp).recipeRepository)
+    }
+
+    private val profileViewModel: ProfileViewModel by viewModels {
+        val app = application as RecipeApp
+
+        ProfileViewModelFactory(
+            userDao = AppDatabase.getDatabase(applicationContext).userDao(),
+            sharedPrefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,9 +70,14 @@ class HomeActivity : ComponentActivity() {
                         )
                         naviSetSettingsDestinations(
                             navigationNode = rootNavigationNode,
+                            profileViewModel = profileViewModel,
                             onLogOut = {
                                 val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                sharedPref.edit().clear().apply()
+                                sharedPref.edit()
+                                    .putBoolean("remember_me", false)
+                                    .clear()
+                                    .apply()
+
                                 val intent = Intent(context, SplashActivity::class.java)
                                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                 context.startActivity(intent)

@@ -1,17 +1,19 @@
 package com.example.recipegenerator.data.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "recipes")
+@Entity(tableName = "recipes", indices = [Index(value = ["remoteId"], unique = true)])
 data class RecipeEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    val remoteId: String,
     val name: String = "",
-    val description: String = "",
     val imageUrl: String = "",
-    val ingredients: String = "",   // stored as comma-separated string
-    val cookingTime: Int = 0,
-    val difficulty: String = "Easy",
+    val category: String = "",
+    val area: String = "",
+    val ingredients: String = "",
+    val instruction: String = "",
     val isFavorite: Boolean = false
 )

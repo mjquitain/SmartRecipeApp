@@ -6,18 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.recipegenerator.data.dao.IngredientDao
 import com.example.recipegenerator.data.dao.RecipeDao
+import com.example.recipegenerator.data.dao.UserDao
 import com.example.recipegenerator.data.entity.IngredientEntity
 import com.example.recipegenerator.data.entity.RecipeEntity
+import com.example.recipegenerator.data.entity.UserEntity
 
 @Database(
-    entities = [IngredientEntity::class, RecipeEntity::class],
-    version = 1,
+    entities = [IngredientEntity::class, RecipeEntity::class, UserEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun ingredientDao(): IngredientDao
     abstract fun recipeDao(): RecipeDao
+    abstract fun userDao(): UserDao
 
     companion object {
         @Volatile
@@ -29,7 +32,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "recipe_generator_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }
