@@ -9,7 +9,7 @@ data class IngredientEntity(
     val id: Int = 0,
     val name: String = "",
     val category: String = "",
-    val quantity: String = "",
+    val quantity: Double = 0.0,
     val unit: String = "",
     val expirationDate: String = ""
 )

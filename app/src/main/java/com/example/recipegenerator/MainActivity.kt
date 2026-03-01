@@ -21,11 +21,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.example.recipegenerator.data.AppDatabase
-import com.example.recipegenerator.data.entity.UserEntity
-import okhttp3.Dispatcher
+import com.example.recipegenerator.data.entity.IngredientEntity
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var db: AppDatabase
 
     // Define variables for your UI elements
     private lateinit var btnToggleSignIn: Button
@@ -54,15 +52,26 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // Room Test Connection
-        db = AppDatabase.getDatabase(this)
+        val db = AppDatabase.getDatabase(this)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            // READ
-            val list = db.ingredientDao().getAllIngredients().first()
-                list.forEach {
-                    android.util.Log.d("RoomTest", "Ingredient: ${it.name}, qty: ${it.quantity}")
-                }
-            }
+//        CoroutineScope(Dispatchers.IO).launch {
+//            // INSERT
+//            db.ingredientDao().insertIngredient(
+//                IngredientEntity(
+//                    name = "Tomato",
+//                    category = "Vegetable",
+//                    quantity = 3.0,
+//                    unit = "pcs",
+//                    expirationDate = "2025-03-01"
+//                )
+//            )
+//
+//            // READ
+//            val list = db.ingredientDao().getAllIngredients().first()
+//                list.forEach {
+//                    android.util.Log.d("RoomTest", "Ingredient: ${it.name}, qty: ${it.quantity}")
+//                }
+//            }
 
         // Initialize views
         btnToggleSignIn = findViewById(R.id.btnToggleSignIn)
@@ -134,34 +143,19 @@ class MainActivity : AppCompatActivity() {
 
         if (user.isEmpty() || pass.isEmpty()) {
             Toast.makeText(this, "Please enter login details", Toast.LENGTH_SHORT).show()
-            return
-        }
+        } else {
+            val sharedPref = getSharedPreferences("UserPrefs", MODE_PRIVATE)
+            val editor = sharedPref.edit()
 
-        CoroutineScope(Dispatchers.IO).launch {
-            val dbUser = db.userDao().getUserByUsername(user)
-
-            runOnUiThread {
-                if (dbUser != null && dbUser.password == pass) {
-                    val sharedPref = getSharedPreferences("UserPrefs", MODE_PRIVATE)
-                    val editor = sharedPref.edit()
-
-                    editor.putString("current_username", user)
-
-                    if (rememberMe) {
-                        editor.putString("saved_user", user)
-                        editor.putString("saved_pass", pass)
-                        editor.putBoolean("is_remembered", true)
-                    } else {
-                        editor.clear()
-                    }
-                    editor.apply()
-
-                    startActivity(Intent(this@MainActivity, HomeActivity::class.java))
-                    finish()
-                } else {
-                    Toast.makeText(this@MainActivity, "Invalid username or password", Toast.LENGTH_SHORT).show()
-                }
+            if (rememberMe) {
+                editor.putString("saved_user", user)
+                editor.putString("saved_pass", user)
+                editor.putBoolean("is_remembered", true)
+            } else {
+                editor.clear()
             }
+            editor.apply()
+            startActivity(Intent(this, HomeActivity::class.java))
         }
     }
 
@@ -203,21 +197,7 @@ class MainActivity : AppCompatActivity() {
         val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
         val passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{6,}\$"
 
-        val newUser = UserEntity(uname,fName, lName, email, pass)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try{
-                db.userDao().registerUser(newUser)
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Account created!", Toast.LENGTH_SHORT).show()
-                    updateToggleUI(isSignIn = true)
-                }
-            } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this@MainActivity, "User exists!", Toast.LENGTH_SHORT).show() }
-            }
-        }
-
-        when {
+        when{
             fName.isEmpty() -> {
                 etFirstName.error = "First name required"
                 etFirstName.requestFocus()
@@ -253,19 +233,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             else -> {
-                val newUser = UserEntity(uname, fName, lName, email, pass)
-
-                CoroutineScope(Dispatchers.IO). launch {
-                    try {
-                        db.userDao().registerUser(newUser)
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Account created! Please Sign In.", Toast.LENGTH_SHORT).show()
-                            updateToggleUI(isSignIn = true)
-                        }
-                    } catch (e: Exception) {
-                        runOnUiThread { Toast.makeText(this@MainActivity, "Username already exists", Toast.LENGTH_SHORT).show() }
-                    }
-                }
                 val sharedPref = getSharedPreferences("UserPrefs", MODE_PRIVATE)
                 val editor = sharedPref.edit()
                 editor.putString("registered_user", uname)

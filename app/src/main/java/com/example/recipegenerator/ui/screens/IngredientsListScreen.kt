@@ -1,5 +1,6 @@
 package com.example.recipegenerator.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -19,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -27,7 +30,50 @@ import com.example.recipegenerator.data.entity.IngredientEntity
 import com.example.recipegenerator.ui.components.MinimalListItem
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoField
 import java.util.*
+import kotlin.math.max
+
+
+private val expirationDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
+
+
+
+private val regexNumeric = Regex("^\\s*(?<number>-?\\d+(?:\\.\\d+)?)\\s*$")
+
+private val expiryMarkerPalatableColor = Color(0.3f, 0.9f, 0.1f)
+private val expiryMarkerWeekBeforeExpiringColor = Color(0.9f, 0.9f, 0.1f)
+private val expiryMarkerHalfWeekBeforeExpiringColor = Color(0.9f, 0.5f, 0.1f)
+private val expiryMarkerExpiredColor = Color(0.9f, 0.1f, 0.1f)
+private val expiryMarkerUnspecifiedColor = Color(0.2f, 0.4f, 0.7f)
+private val expiryMarkerExceptionColor = Color(1f, 0f, 1f)
+
+
+
+private fun _tryGetDate(from : String) : LocalDate? {
+    return try {
+        LocalDate.parse(from, expirationDateFormat)
+    } catch (parseError : DateTimeParseException) {
+        null
+    }
+}
+
+// This will return only between -1 to whatever is the max number
+// of an integer/long. -1 will mark the entry as expired. It is
+// limited to -1 and above to keep negative numbers reserved for
+// other exceptions. -2 is a reserved number to mean "Unspecified".
+// Numbers even lower are just exception numbers.
+private fun _getRelativeLifespanFromString(dateString : String) : Long {
+    if (dateString.isBlank()) { return -2L }
+    val date = _tryGetDate(dateString) ?: return -3L
+    return max(date.minusDays(LocalDate.now().toEpochDay()).toEpochDay(), -1)
+}
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +98,9 @@ fun IngredientsListScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
         topBar = {
             TopAppBar(
                 title = { Text("Ingredients", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
@@ -79,7 +127,9 @@ fun IngredientsListScreen(
 
         Box(modifier = Modifier.padding(it)) {
             Column(
-                modifier = Modifier.padding(16.dp, 20.dp).fillMaxSize(),
+                modifier = Modifier
+                    .padding(16.dp, 20.dp)
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val autoWeight = Modifier.weight(1f)
@@ -94,7 +144,9 @@ fun IngredientsListScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val shrunkenButtonModifier = Modifier.padding(0.dp).size(30.dp)
+                        val shrunkenButtonModifier = Modifier
+                            .padding(0.dp)
+                            .size(30.dp)
                         IconButton(
                             modifier = shrunkenButtonModifier,
                             onClick = { showAddDialog = true }
@@ -212,28 +264,29 @@ fun IngredientListItem(
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
+
     val containerTitleFontSize = 16.sp
     val selectableContainerAlignment = Alignment.CenterVertically
-    val titleContainer = Modifier.fillMaxSize().padding(16.dp, 12.dp)
+    val titleContainer = Modifier
+        .fillMaxSize()
+        .padding(16.dp, 12.dp)
     val actionsContainer = Modifier
         .defaultMinSize(100.dp)
         .width(100.dp)
         .fillMaxHeight()
         .background(MaterialTheme.colorScheme.primary)
 
-    val daysUntilExpiration = try {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val expDate = sdf.parse(ingredient.expirationDate)
-        val today = Date()
-        val diff = expDate!!.time - today.time
-        (diff / (1000 * 60 * 60 * 24)).toInt()
-    } catch (e: Exception) { 999 }
+    val lifespanOrCode = _getRelativeLifespanFromString(ingredient.expirationDate)
 
     val expirationColor = when {
-        daysUntilExpiration < 0 -> Color(0.9f, 0.1f, 0.1f)
-        daysUntilExpiration <= 3 -> Color(0.9f, 0.5f, 0.1f)
-        daysUntilExpiration <= 7 -> Color(0.9f, 0.9f, 0.1f)
-        else -> Color(0.3f, 0.9f, 0.1f)
+        lifespanOrCode > 7 -> expiryMarkerPalatableColor;
+        lifespanOrCode > 3 -> expiryMarkerWeekBeforeExpiringColor;
+        lifespanOrCode >= 0 -> expiryMarkerHalfWeekBeforeExpiringColor;
+        lifespanOrCode == -1L -> expiryMarkerExpiredColor;
+
+        // Non-lifespan colours
+        lifespanOrCode == -2L -> expiryMarkerUnspecifiedColor;
+        else /* -3 or so */ -> expiryMarkerExceptionColor;
     }
 
     MinimalListItem {
@@ -252,7 +305,8 @@ fun IngredientListItem(
                 }
                 Spacer(Modifier.width(10.dp))
                 Box(
-                    Modifier.size(20.dp)
+                    Modifier
+                        .size(20.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .background(expirationColor)
                 )
@@ -271,6 +325,7 @@ fun IngredientListItem(
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IngredientDialog(
@@ -279,9 +334,15 @@ fun IngredientDialog(
     onDismiss: () -> Unit,
     onSave: (IngredientEntity) -> Unit
 ) {
+    val toastNameRequired = Toast.makeText(LocalContext.current, "Name is required", Toast.LENGTH_SHORT)
+    val toastQuantityRequired = Toast.makeText(LocalContext.current, "Quantity is required", Toast.LENGTH_SHORT)
+    val toastQuantityIsNegative = Toast.makeText(LocalContext.current, "Quantity must be 0.0 or larger.", Toast.LENGTH_SHORT)
+    val toastQuantityMalformed = Toast.makeText(LocalContext.current, "Quantity does not contain a proper number.", Toast.LENGTH_SHORT)
+    val toastExpiryMalformed = Toast.makeText(LocalContext.current, "Expiry date is malformed.", Toast.LENGTH_SHORT)
+
     var name by remember { mutableStateOf(ingredient?.name ?: "") }
     var category by remember { mutableStateOf(ingredient?.category ?: "Vegetable") }
-    var quantity by remember { mutableStateOf(ingredient?.quantity ?: "") }
+    var quantity by remember { mutableStateOf(ingredient?.quantity?.toString() ?: "0.0")}
     var unit by remember { mutableStateOf(ingredient?.unit ?: "g") }
     var expirationDate by remember { mutableStateOf(ingredient?.expirationDate ?: "") }
     var showCategoryMenu by remember { mutableStateOf(false) }
@@ -296,7 +357,8 @@ fun IngredientDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(
@@ -319,7 +381,9 @@ fun IngredientDialog(
                         value = category, onValueChange = {}, readOnly = true,
                         label = { Text("Category") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryMenu) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
                     )
                     ExposedDropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                         categories.forEach { cat ->
@@ -330,8 +394,10 @@ fun IngredientDialog(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = quantity, onValueChange = { quantity = it },
-                        label = { Text("Quantity") }, modifier = Modifier.weight(1f), singleLine = true
+                        value = quantity,
+                        onValueChange = { quantity = it },
+                        label = { Text("Quantity") },
+                        modifier = Modifier.weight(1f), singleLine = true
                     )
                     ExposedDropdownMenuBox(
                         expanded = showUnitMenu, onExpandedChange = { showUnitMenu = it },
@@ -341,7 +407,9 @@ fun IngredientDialog(
                             value = unit, onValueChange = {}, readOnly = true,
                             label = { Text("Unit") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
                         )
                         ExposedDropdownMenu(expanded = showUnitMenu, onDismissRequest = { showUnitMenu = false }) {
                             units.forEach { u ->
@@ -362,21 +430,43 @@ fun IngredientDialog(
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Button(
                         onClick = {
-                            if (name.isNotBlank() && quantity.isNotBlank()) {
-                                onSave(
-                                    IngredientEntity(
-                                        id = ingredient?.id ?: 0,
-                                        name = name,
-                                        category = category,
-                                        quantity = quantity,
-                                        unit = unit,
-                                        expirationDate = expirationDate
-                                    )
-                                )
+                            if (name.isBlank()) {
+                                toastNameRequired.show()
+                                return@Button
+                            } else if (quantity.isBlank()) {
+                                toastQuantityRequired.show()
+                                return@Button
+                            } else if (expirationDate.isNotBlank() && _tryGetDate(expirationDate) == null) {
+                                toastExpiryMalformed.show()
+                                return@Button
                             }
+
+                            val quantityCapture = regexNumeric.find(quantity)
+
+                            if (quantityCapture == null || quantityCapture.groups["number"] == null) {
+                                toastQuantityMalformed.show()
+                                return@Button
+                            }
+
+                            val realQuantity = quantityCapture.groups["number"]!!.value.toDouble()
+
+                            if (realQuantity < 0L) {
+                                toastQuantityIsNegative.show()
+                                return@Button
+                            }
+
+                            onSave(
+                                IngredientEntity(
+                                    id = ingredient?.id ?: 0,
+                                    name = name,
+                                    category = category,
+                                    quantity = quantityCapture.groups["number"]!!.value.toDouble(),
+                                    unit = unit,
+                                    expirationDate = expirationDate
+                                )
+                            )
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank() && quantity.isNotBlank()
+                        modifier = Modifier.weight(1f)
                     ) { Text("Save") }
                 }
             }
@@ -428,4 +518,11 @@ fun FilterDialog(
             }
         }
     }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun Ingredit() {
+    IngredientDialog("Sample", null, {}, {})
 }
