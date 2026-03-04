@@ -357,6 +357,7 @@ fun IngredientDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
