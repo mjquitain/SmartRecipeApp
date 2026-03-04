@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.recipegenerator"
-        minSdk = 23
+        minSdk = 26 // API level 26 is holding this project back by a lot.
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
