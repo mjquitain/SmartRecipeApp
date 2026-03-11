@@ -48,20 +48,12 @@ fun RecipeGenerationScreen(
 
     val isLoading by recipeViewModel.isLoading.collectAsState()
     val errorMessage by recipeViewModel.errorMessage.collectAsState()
-    val navigateEvent by recipeViewModel.navigateToDetails.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarMessage by recipeViewModel.snackbarMessage. collectAsState(initial = null)
 
     LaunchedEffect(Unit) {
         recipeViewModel.snackbarMessage.collect { message ->
             snackbarHostState.showSnackbar(message)
-        }
-    }
-
-    LaunchedEffect(navigateEvent) {
-        if (navigateEvent != null) {
-            onRecipeClick(navigateEvent!!)
-            recipeViewModel.onNavigated()
         }
     }
 
@@ -360,7 +352,17 @@ fun RecipeGenerationScreen(
                     when (selectedTab) {
                         0 -> ApiRecipesGrid(
                             apiResults = apiResults,
-                            onMealClick = { mealId -> recipeViewModel.selectMeal(mealId) },
+                            onMealClick = { mealId ->
+                                recipeViewModel.selectMeal(mealId)
+                                onRecipeClick(
+                                    RecipeEntity(
+                                        remoteId = mealId,
+                                        name = "", imageUrl = "", category = "",
+                                        area = "", ingredients = "", instruction = "",
+                                        isFavorite = false
+                                    )
+                                )
+                            },
                             onFavoritesClick = { mealDto ->
                                 recipeToToggle = mealDto.toEntity()
                                 showConfirmDialog = true

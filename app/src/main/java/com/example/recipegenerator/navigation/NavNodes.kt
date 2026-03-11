@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
     @Serializable object HomeNode
     @Serializable object IngredientsNode
     @Serializable object RecipesNode
+
     @Serializable data class RecipeDetailNode(val recipeId: String)
 }
 

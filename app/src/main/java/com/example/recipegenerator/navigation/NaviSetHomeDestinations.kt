@@ -17,12 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.*
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.*
-import com.example.recipegenerator.data.entity.RecipeEntity
 import com.example.recipegenerator.ui.screens.HomeScreen
 import com.example.recipegenerator.ui.screens.IngredientsListScreen
 import com.example.recipegenerator.ui.screens.RecipeDetailScreen
@@ -31,6 +29,11 @@ import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.navigation.toRoute
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
 
 fun NavGraphBuilder.naviSetHomeDestinations(
     paddingValues: PaddingValues = PaddingValues(),
@@ -58,6 +61,12 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                         },
                         onNavigateToRecipes = {
                             localNavController.navigate(LandingGraph.RecipesNode)
+                        },
+
+                        onRecipeClick = { meal ->
+                            localNavController.navigate(
+                                LandingGraph.RecipeDetailNode(recipeId = meal.idMeal)
+                            )
                         }
                     )
                 }
@@ -73,8 +82,6 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                 }
 
                 composable<LandingGraph.RecipesNode> {
-                    val composeAndroidContext = LocalContext.current
-
                     RecipeGenerationScreen(
                         padding = paddingValues,
                         recipeViewModel = recipeViewModel,
@@ -82,15 +89,9 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                             upperNavController.navigate(SettingsGraph)
                         },
                         onRecipeClick = { recipe ->
-//                            Toast.makeText(
-//                                composeAndroidContext,
-//                                "TODO: Insert recipe details here\nNavigate to recipe details: ${recipe.name}",
-//                                Toast.LENGTH_LONG
-//                            ).show()
+                            // RecipeGenerationScreen still uses navigateToDetails normally
                             localNavController.navigate(
-                                LandingGraph.RecipeDetailNode(
-                                    recipeId = recipe.remoteId ?: recipe.id.toString()
-                                )
+                                LandingGraph.RecipeDetailNode(recipeId = recipe.remoteId ?: recipe.id.toString())
                             )
                         },
                         onNavigateToHome = {
@@ -100,25 +101,33 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                 }
 
                 composable<LandingGraph.RecipeDetailNode> { backStackEntry ->
+                    val recipeId = backStackEntry.toRoute<LandingGraph.RecipeDetailNode>().recipeId
                     val selectedRecipe by recipeViewModel.selectedRecipe.collectAsState()
+
+                    // Fetch details when this screen first appears
+                    LaunchedEffect(recipeId) {
+                        recipeViewModel.selectMeal(recipeId)
+                    }
 
                     if (selectedRecipe != null) {
                         RecipeDetailScreen(
                             recipe = selectedRecipe!!,
                             onBackClick = {
                                 recipeViewModel.onNavigated()
+                                localNavController.popBackStack()
                             },
                             onFavoriteClick = {
                                 recipeViewModel.toggleFavorite(selectedRecipe!!)
                             }
                         )
                     } else {
-                        RecipeGenerationScreen(
-                            recipeViewModel = recipeViewModel,
-                            onRecipeClick = { recipe ->
-                                recipeViewModel.selectMeal(recipe.remoteId)
-                            }
-                        )
+                        // Loading state while fetching details
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
             }

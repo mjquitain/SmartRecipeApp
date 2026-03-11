@@ -38,10 +38,8 @@ class HomeActivity : ComponentActivity() {
     }
 
     private val profileViewModel: ProfileViewModel by viewModels {
-        val app = application as RecipeApp
-
         ProfileViewModelFactory(
-            userDao = AppDatabase.getDatabase(applicationContext).userDao(),
+            userDao = (application as RecipeApp).userDao,
             sharedPrefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
         )
     }

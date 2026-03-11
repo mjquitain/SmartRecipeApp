@@ -6,23 +6,27 @@ import androidx.lifecycle.viewModelScope
 import com.example.recipegenerator.data.entity.RecipeEntity
 import com.example.recipegenerator.data.repository.RecipeRepository
 import com.example.recipegenerator.network.MealDto
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
 class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
 
+    // ─────────────────────────────────────────────
+    // SEARCH / API STATE
+    // ─────────────────────────────────────────────
+
     private val _searchResults = MutableStateFlow<List<MealDto>>(emptyList())
     val searchResults: StateFlow<List<MealDto>> = _searchResults
+
+    // Favorite recipes from Room
     val favoriteRecipes: StateFlow<List<RecipeEntity>> = repository.favoriteRecipes
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    // Search results merged with local favorites so the UI knows which are favorited
     val searchResultsWithFavorites: StateFlow<List<MealDto>> = _searchResults
         .combine(favoriteRecipes) { remoteMeals, localFavorites ->
             remoteMeals.map { remote ->
@@ -31,82 +35,98 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _navigateToDetails = MutableStateFlow<RecipeEntity?>(null)
-    val navigateToDetails: StateFlow<RecipeEntity?> = _navigateToDetails
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    // ─────────────────────────────────────────────
+    // DETAIL / NAVIGATION STATE
+    // ─────────────────────────────────────────────
+
+    // Full MealDto details for the detail screen (from API lookup by ID)
     private val _selectedMealDetails = MutableStateFlow<MealDto?>(null)
     val selectedMealDetails: StateFlow<MealDto?> = _selectedMealDetails
+
+    // RecipeEntity used for detail screen and favorite toggle
+    private val _selectedRecipe = MutableStateFlow<RecipeEntity?>(null)
+    val selectedRecipe: StateFlow<RecipeEntity?> = _selectedRecipe.asStateFlow()
+
+    // Triggers navigation to detail screen
+    private val _navigateToDetails = MutableStateFlow<RecipeEntity?>(null)
+    val navigateToDetails: StateFlow<RecipeEntity?> = _navigateToDetails
+
+    // Raw selected MealDto (used when coming from HomeScreen cards)
+    private val _selectedMeal = MutableStateFlow<MealDto?>(null)
+    val selectedMeal: StateFlow<MealDto?> = _selectedMeal
+
+    // ─────────────────────────────────────────────
+    // LOADING / ERROR / SNACKBAR STATE
+    // ─────────────────────────────────────────────
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
+    private val _snackbarMessage = MutableSharedFlow<String>()
+    val snackbarMessage = _snackbarMessage.asSharedFlow()
+
+    // ─────────────────────────────────────────────
+    // CATEGORY STATE
+    // ─────────────────────────────────────────────
+
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+
+    // ─────────────────────────────────────────────
+    // INIT — load default recipes on startup
+    // ─────────────────────────────────────────────
 
     init {
         searchRecipes("s")
     }
 
-    // LOCAL CRUD
+    // ─────────────────────────────────────────────
+    // LOCAL ROOM CRUD
+    // ─────────────────────────────────────────────
+
     fun insert(recipe: RecipeEntity) {
-        viewModelScope.launch {
-            repository.insert(recipe)
-        }
+        viewModelScope.launch { repository.insert(recipe) }
     }
 
     fun update(recipe: RecipeEntity) {
-        viewModelScope.launch {
-            repository.update(recipe)
-        }
+        viewModelScope.launch { repository.update(recipe) }
     }
 
     fun delete(recipe: RecipeEntity) {
-        viewModelScope.launch {
-            repository.delete(recipe)
-        }
+        viewModelScope.launch { repository.delete(recipe) }
     }
 
-    private val _selectedRecipe = MutableStateFlow<RecipeEntity?>(null)
-    val selectedRecipe: StateFlow<RecipeEntity?> = _selectedRecipe.asStateFlow()
-
-    fun selectMeal(mealId: String) {
+    /**
+     * Toggle favorite — checks if already saved in Room.
+     * If yes → removes from favorites.
+     * If no → saves to Room as favorite.
+     * Emits a snackbar message either way.
+     */
+    fun toggleFavorite(recipe: RecipeEntity) {
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val localRecipe = repository.getLocalRecipeById(mealId)
+            val existingFavorite = repository.getLocalRecipeByRemoteId(recipe.remoteId)
+            repository.toggleFavorite(recipe)
 
-                if (localRecipe != null) {
-                    _selectedRecipe.value = localRecipe
-                    _navigateToDetails.value = localRecipe
-                } else {
-                    val response = repository.getRecipeById(mealId)
-                    val remoteMeal = response.meals?.firstOrNull()
-
-                    if (remoteMeal != null) {
-                        val entity = remoteMeal.toEntity()
-                        _selectedRecipe.value = entity
-                        _navigateToDetails.value = entity
-                    }
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Error fetching details: ${e.message}"
-            } finally {
-                _isLoading.value = false
+            val message = if (existingFavorite != null) {
+                "Removed from Favorites"
+            } else {
+                "Added to Favorites"
             }
+            _snackbarMessage.emit(message)
         }
     }
 
-    fun fetchMealDetails(mealId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val response = repository.getMealDetails(mealId)
-                _selectedMealDetails.value = response.meals?.firstOrNull()
-            } catch (e: Exception) {
-                _errorMessage.value = "Could not load details: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
+    // ─────────────────────────────────────────────
+    // REMOTE API CALLS
+    // ─────────────────────────────────────────────
 
+    /**
+     * Search recipes by name.
+     * Default "s" on init loads a broad set of results.
+     */
     fun searchRecipes(query: String) {
         viewModelScope.launch {
             if (query != "s") _selectedCategory.value = null
@@ -122,32 +142,10 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
         }
     }
 
-    private val _snackbarMessage = MutableSharedFlow<String>()
-    val snackbarMessage = _snackbarMessage.asSharedFlow()
-
-    fun toggleFavorite(recipe: RecipeEntity) {
-        viewModelScope.launch {
-            val existingFavorite = repository.getLocalRecipeByRemoteId(recipe.remoteId)
-            repository.toggleFavorite(recipe)
-
-            val favoriteMessage = if (existingFavorite != null) {
-                "Removed From Favorites"
-            } else {
-                "Added to Favorites"
-            }
-            _snackbarMessage.emit(favoriteMessage)
-        }
-    }
-
-    fun onNavigated() {
-        _navigateToDetails.value = null
-        _selectedRecipe.value = null
-    }
-
-    fun clearError() {
-        _errorMessage.value = null
-    }
-
+    /**
+     * Filter by single ingredient — used by HomeScreen generate button.
+     * MealDB free tier supports one ingredient at a time.
+     */
     fun filterByIngredient(ingredient: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -164,17 +162,9 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
         }
     }
 
-    private val _selectedMeal = MutableStateFlow<MealDto?>(null)
-    val selectedMeal: StateFlow<MealDto?> = _selectedMeal
-
-    fun clearSelectedMeal() {
-        _selectedMeal.value = null
-        _selectedRecipe.value = null
-    }
-
-    private val _selectedCategory = MutableStateFlow<String?>(null)
-    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
-
+    /**
+     * Filter by category — used by RecipeGenerationScreen category chips.
+     */
     fun filterByCategory(categoryName: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -184,7 +174,7 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
                 val response = repository.filterByCategory(categoryName)
                 _searchResults.value = response.meals ?: emptyList()
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to load $categoryName recipes: ${e.message}."
+                _errorMessage.value = "Failed to load $categoryName recipes: ${e.message}"
                 _searchResults.value = emptyList()
             } finally {
                 _isLoading.value = false
@@ -192,11 +182,103 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
         }
     }
 
+    /**
+     * Select a meal by ID.
+     * First checks Room for a local copy, falls back to API if not found.
+     * Sets _selectedRecipe and _navigateToDetails to trigger navigation.
+     */
+    fun selectMeal(mealId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val localRecipe = repository.getLocalRecipeById(mealId)
+
+                if (localRecipe != null) {
+                    _selectedRecipe.value = localRecipe
+                    _navigateToDetails.value = localRecipe
+                } else {
+                    val response = repository.getRecipeById(mealId)
+                    val remoteMeal = response.meals?.firstOrNull()
+                    if (remoteMeal != null) {
+                        val entity = remoteMeal.toEntity()
+                        _selectedRecipe.value = entity
+                        _navigateToDetails.value = entity
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Error fetching details: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Fetch full MealDto details separately (used when you need
+     * the raw API data like instructions, YouTube link, etc.)
+     */
+    fun fetchMealDetails(mealId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val response = repository.getMealDetails(mealId)
+                _selectedMealDetails.value = response.meals?.firstOrNull()
+            } catch (e: Exception) {
+                _errorMessage.value = "Could not load details: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // CLEAR / RESET FUNCTIONS
+    // ─────────────────────────────────────────────
+
+    /**
+     * Clear search results — used by the Clear button on HomeScreen
+     */
+    fun clearResults() {
+        _searchResults.value = emptyList()
+    }
+
+    /**
+     * Clear error message — used by Dismiss button on error state
+     */
+    fun clearError() {
+        _errorMessage.value = null
+    }
+
+    /**
+     * Clear selected meal — used when navigating back from detail screen
+     */
+    fun clearSelectedMeal() {
+        _selectedMeal.value = null
+        _selectedRecipe.value = null
+    }
+
+    /**
+     * Called after navigating to detail screen to reset navigation trigger
+     */
+    fun onNavigated() {
+        _navigateToDetails.value = null
+        _selectedRecipe.value = null
+    }
+
+    /**
+     * Reset everything back to the default broad search
+     */
     fun resetToDefault() {
         _selectedCategory.value = null
         searchRecipes("s")
     }
 }
+
+// ─────────────────────────────────────────────
+// MealDto → RecipeEntity converter
+// Maps all 20 ingredient + measure pairs from the API
+// into a single formatted string stored in Room
+// ─────────────────────────────────────────────
 
 fun MealDto.toEntity(): RecipeEntity {
     fun pair(ing: String?, meas: String?): String? {

@@ -17,4 +17,6 @@ class RecipeApp : Application() {
     val recipeRepository by lazy {
         RecipeRepository(database.recipeDao(), RetrofitInstance.api)
     }
+
+    val userDao by lazy { database.userDao() }
 }
