@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.recipegenerator.navigation.SettingsGraph
 import com.example.recipegenerator.ui.components.OptionItem
+import com.example.recipegenerator.ui.theme.Lime10
 import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
 import com.example.recipegenerator.ui.viewmodel.ProfileViewModel
 
@@ -38,8 +39,8 @@ fun ProfileScreen(
     onBackClick: () -> Unit = {},
     onLogOutClick: () -> Unit = {}
 ) {
-    val userState = profileViewModel?.userState?.collectAsState()
-    val user = userState?.value
+    val userState by profileViewModel?.userState?.collectAsState() ?: remember { mutableStateOf(null) }
+    val user = userState
 
     val displayName = user?.let { "${it.firstName} ${it.lastName} (${it.username})" } ?: "Loading..."
     val displayFName = user?.firstName ?: "..."
@@ -67,6 +68,7 @@ fun ProfileScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Profile") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lime10),
                 actions = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -89,7 +91,6 @@ fun ProfileScreen(
                     .fillMaxWidth()
                     .height(120.dp)
                     .padding(20.dp)
-                    .clickable { showEditProfileDialog = true }
             ) {
                 Row {
                     Icon(
@@ -193,7 +194,9 @@ fun ProfileScreen(
             }
 
             HorizontalDivider()
-            Box(Modifier.fillMaxWidth().padding(10.dp)) {
+            Box(Modifier
+                .fillMaxWidth()
+                .padding(10.dp)) {
                 Button(onLogOutClick, modifier = Modifier.fillMaxWidth()) {
                     Text("Log out")
                 }
@@ -209,8 +212,8 @@ fun ProfileScreen(
             currentUser = displayUser,
             currentEmail = displayEmail,
             onDismiss = { showEditProfileDialog = false },
-            onSave = { first, last, user, email ->
-                profileViewModel?.updateProfile(first, last, user, email)
+            onSave = { first, last, user ->
+                profileViewModel?.updateProfile(first, last, user)
                 showEditProfileDialog = false
             }
         )
@@ -220,9 +223,9 @@ fun ProfileScreen(
     if (showChangePasswordDialog) {
         ChangePasswordDialog(
             onDismiss = { showChangePasswordDialog = false },
-            onSave = {
+            onSave = { current, new ->
+                profileViewModel?.changePassword(current, new)
                 showChangePasswordDialog = false
-                // TODO: Implement password change logic
             }
         )
     }
@@ -247,12 +250,11 @@ fun EditProfileDialog(
     currentUser: String,
     currentEmail: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String) -> Unit
+    onSave: (String, String, String) -> Unit
 ) {
     var fName by remember { mutableStateOf(currentFName) }
     var lName by remember { mutableStateOf(currentLName) }
     var user by remember { mutableStateOf(currentUser) }
-    var email by remember { mutableStateOf(currentEmail) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -303,15 +305,6 @@ fun EditProfileDialog(
                     leadingIcon = { Icon(Icons.Outlined.Person, "Name") }
                 )
 
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.Email, "Email") }
-                )
-
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = onDismiss,
@@ -320,9 +313,9 @@ fun EditProfileDialog(
                         Text("Cancel")
                     }
                     Button(
-                        onClick = { onSave(fName, lName, user, email) },
+                        onClick = { onSave(fName, lName, user) },
                         modifier = Modifier.weight(1f),
-                        enabled = fName.isNotBlank() && lName.isNotBlank() && user.isNotBlank() && email.isNotBlank()
+                        enabled = fName.isNotBlank() && lName.isNotBlank() && user.isNotBlank()
                     ) {
                         Text("Save")
                     }
@@ -335,7 +328,7 @@ fun EditProfileDialog(
 @Composable
 fun ChangePasswordDialog(
     onDismiss: () -> Unit,
-    onSave: () -> Unit
+    onSave: (String, String) -> Unit
 ) {
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -433,9 +426,9 @@ fun ChangePasswordDialog(
                         Text("Cancel")
                     }
                     Button(
-                        onClick = onSave,
+                        onClick = { onSave(currentPassword, newPassword) },
                         modifier = Modifier.weight(1f),
-                        enabled = currentPassword.isNotBlank() && passwordsMatch
+                        enabled = currentPassword.isNotBlank() && newPassword == confirmPassword && newPassword.isNotBlank()
                     ) {
                         Text("Change")
                     }

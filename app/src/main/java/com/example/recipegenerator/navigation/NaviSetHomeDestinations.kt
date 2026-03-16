@@ -1,13 +1,11 @@
 package com.example.recipegenerator.navigation
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
@@ -32,8 +30,11 @@ import androidx.compose.runtime.getValue
 import androidx.navigation.toRoute
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
+import com.example.recipegenerator.ui.theme.Brown30
+import com.example.recipegenerator.ui.theme.Brown50
 
 fun NavGraphBuilder.naviSetHomeDestinations(
     paddingValues: PaddingValues = PaddingValues(),
@@ -56,11 +57,9 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                     HomeScreen(
                         padding = paddingValues,
                         recipeViewModel = recipeViewModel,
+                        ingredientViewModel = ingredientViewModel,
                         onProfileClick = {
                             upperNavController.navigate(SettingsGraph)
-                        },
-                        onNavigateToRecipes = {
-                            localNavController.navigate(LandingGraph.RecipesNode)
                         },
 
                         onRecipeClick = { meal ->
@@ -103,6 +102,8 @@ fun NavGraphBuilder.naviSetHomeDestinations(
                 composable<LandingGraph.RecipeDetailNode> { backStackEntry ->
                     val recipeId = backStackEntry.toRoute<LandingGraph.RecipeDetailNode>().recipeId
                     val selectedRecipe by recipeViewModel.selectedRecipe.collectAsState()
+                    val favoriteIds by recipeViewModel.favoriteIds.collectAsState()
+                    val isFavorited = favoriteIds.contains(recipeId)
 
                     // Fetch details when this screen first appears
                     LaunchedEffect(recipeId) {
@@ -111,13 +112,21 @@ fun NavGraphBuilder.naviSetHomeDestinations(
 
                     if (selectedRecipe != null) {
                         RecipeDetailScreen(
-                            recipe = selectedRecipe!!,
+                            padding = paddingValues,
+                            recipe = selectedRecipe!!.copy(isFavorite = isFavorited),
                             onBackClick = {
                                 recipeViewModel.onNavigated()
                                 localNavController.popBackStack()
                             },
                             onFavoriteClick = {
-                                recipeViewModel.toggleFavorite(selectedRecipe!!)
+                                recipeViewModel.toggleFavorite(
+                                    recipeId = recipeId,
+                                    isNowFavorite = !isFavorited,
+                                    recipeEntity = selectedRecipe
+                                )
+                            },
+                            onNavigateToHome = {
+                                localNavController.navigate(LandingGraph.HomeNode)
                             }
                         )
                     } else {
@@ -138,22 +147,24 @@ fun NavGraphBuilder.naviSetHomeDestinations(
 @Composable
 fun CircularBottomNavigationBar(navController: NavController?) {
     Box(
-        modifier = Modifier.fillMaxWidth().height(90.dp),
+        modifier = Modifier
+            .height(100.dp)
+            .padding(start = 16.dp, bottom = 30.dp, end = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.85f).height(70.dp).align(Alignment.Center),
-            color = Color.White,
-            shadowElevation = 8.dp,
-            shape = RoundedCornerShape(50.dp)
+            modifier = Modifier.fillMaxWidth().height(60.dp).align(Alignment.Center),
+            color = Brown50,
+            shadowElevation = 2.dp,
+            shape = RoundedCornerShape(40.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 NavigationItem(
-                    icon = Icons.Default.Email,
+                    icon = Icons.Default.Favorite,
                     label = "Recipes",
                     isSelected = navController?.currentDestination?.hasRoute(LandingGraph.RecipesNode::class) == true,
                     onClick = { navController?.navigate(LandingGraph.RecipesNode) }
@@ -184,16 +195,16 @@ fun NavigationItem(
 ) {
     Box(
         modifier = Modifier
-            .size(64.dp)
+            .size(54.dp)
             .clip(CircleShape)
-            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .background(if (isSelected) Brown30 else Color.Transparent)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isSelected) Color.White else Color.Gray,
+            tint = Color.White,
             modifier = Modifier.size(28.dp)
         )
     }

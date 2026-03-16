@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.recipegenerator.data.entity.IngredientEntity
 import com.example.recipegenerator.ui.components.MinimalListItem
+import com.example.recipegenerator.ui.theme.Lime10
 import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -103,6 +104,7 @@ fun IngredientsListScreen(
             .padding(padding),
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lime10),
                 title = { Text("Ingredients", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { }) {
@@ -194,7 +196,7 @@ fun IngredientsListScreen(
                             .scrollable(state = listScroller, orientation = Orientation.Vertical),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        items(filteredIngredients, key = { it.id }) { ingredient ->
+                        items(filteredIngredients, key = { "${it.name}_${it.expirationDate}" }) { ingredient ->
                             IngredientListItem(
                                 ingredient = ingredient,
                                 onEditClick = {
@@ -217,6 +219,7 @@ fun IngredientsListScreen(
     if (showAddDialog) {
         IngredientDialog(
             title = "Add Ingredient",
+            userId = ingredientViewModel.userId,
             onDismiss = { showAddDialog = false },
             onSave = { newIngredient ->
                 // INSERT — calls Room via ViewModel
@@ -230,6 +233,7 @@ fun IngredientsListScreen(
     if (showEditDialog && ingredientToEdit != null) {
         IngredientDialog(
             title = "Edit Ingredient",
+            userId = ingredientViewModel.userId,
             ingredient = ingredientToEdit,
             onDismiss = {
                 showEditDialog = false
@@ -264,15 +268,14 @@ fun IngredientListItem(
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
-
     val containerTitleFontSize = 16.sp
     val selectableContainerAlignment = Alignment.CenterVertically
     val titleContainer = Modifier
         .fillMaxSize()
-        .padding(16.dp, 12.dp)
+        .padding(horizontal = 16.dp)
+        .height(50.dp)
     val actionsContainer = Modifier
-        .defaultMinSize(100.dp)
-        .width(100.dp)
+        .fillMaxWidth(0.3f)
         .fillMaxHeight()
         .background(MaterialTheme.colorScheme.primary)
 
@@ -290,7 +293,7 @@ fun IngredientListItem(
     }
 
     MinimalListItem {
-        Row(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxSize().height(70.dp)) {
             val autoWeight = Modifier.weight(1f)
             Row(
                 modifier = titleContainer.weight(1.0f),
@@ -300,10 +303,9 @@ fun IngredientListItem(
                     Text(ingredient.name, fontSize = containerTitleFontSize, fontWeight = FontWeight.Medium)
                     Text(
                         "${ingredient.quantity} ${ingredient.unit} • ${ingredient.category}",
-                        fontSize = 12.sp, color = Color.Gray
+                        fontSize = 13.sp, color = Color.Gray
                     )
                 }
-                Spacer(Modifier.width(10.dp))
                 Box(
                     Modifier
                         .size(20.dp)
@@ -312,7 +314,10 @@ fun IngredientListItem(
                 )
             }
             Box(modifier = actionsContainer) {
-                Row(verticalAlignment = selectableContainerAlignment) {
+                Row(
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = onEditClick, modifier = autoWeight) {
                         Icon(Icons.Outlined.Create, "Edit", tint = MaterialTheme.colorScheme.onPrimary)
                     }
@@ -330,6 +335,7 @@ fun IngredientListItem(
 @Composable
 fun IngredientDialog(
     title: String,
+    userId: String,
     ingredient: IngredientEntity? = null,
     onDismiss: () -> Unit,
     onSave: (IngredientEntity) -> Unit
@@ -348,7 +354,7 @@ fun IngredientDialog(
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showUnitMenu by remember { mutableStateOf(false) }
 
-    val categories = listOf("Meat", "Seafood", "Vegetable", "Fruit", "Dairy", "Grain", "Spice", "Other")
+    val categories = listOf("Protein", "Dairy", "Condiment", "Grain", "Fruit", "Vegetable")
     val units = listOf("g", "kg", "ml", "l", "pieces", "tbsp", "tsp", "cups")
 
     Dialog(onDismissRequest = onDismiss) {
@@ -458,7 +464,7 @@ fun IngredientDialog(
 
                             onSave(
                                 IngredientEntity(
-                                    id = ingredient?.id ?: 0,
+                                    userId = userId,
                                     name = name,
                                     category = category,
                                     quantity = quantityCapture.groups["number"]!!.value.toDouble(),
@@ -525,5 +531,5 @@ fun FilterDialog(
 @Preview(showBackground = true)
 @Composable
 fun Ingredit() {
-    IngredientDialog("Sample", null, {}, {})
+    IngredientDialog("Sample", "", null, {}, {})
 }

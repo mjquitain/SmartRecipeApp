@@ -11,13 +11,21 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.textfield.TextInputEditText
 import com.example.recipegenerator.ui.viewmodel.AuthViewModel
 import com.example.recipegenerator.ui.viewmodel.AuthViewModelFactory
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.GoogleAuthProvider
 
 class MainActivity : AppCompatActivity() {
-
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var googleSignInLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
     private lateinit var btnToggleSignIn: Button
     private lateinit var btnToggleSignUp: Button
     private lateinit var btnMainAction: Button
@@ -26,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvSubTitle: TextView
     private lateinit var layoutSignInFields: LinearLayout
     private lateinit var layoutSignUpFields: LinearLayout
-    private lateinit var etSignInUser: TextInputEditText
+    private lateinit var etSignInEmail: TextInputEditText
     private lateinit var etSignInPass: TextInputEditText
     private lateinit var cbRememberMe: CheckBox
     private lateinit var btnForgot: Button
@@ -38,15 +46,59 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPassSignUp: TextInputEditText
     private lateinit var etPassConfirmSignUp: TextInputEditText
     private var isSignInMode = true
-
     private lateinit var authViewModel: AuthViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+        val sharedPrefs = getSharedPreferences("UserPrefs", MODE_PRIVATE)
+
+        val currentUser = auth.currentUser
+        val isRemembered = sharedPrefs.getBoolean("is_remembered", false)
+
+        if (currentUser != null && currentUser.isEmailVerified && isRemembered) {
+            startActivity(Intent(this, HomeActivity::class.java))
+            finish()
+            return
+        }
+
+        if (currentUser != null && !isRemembered) {
+            auth.signOut()
+        }
+
+        googleSignInLauncher = registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)!!
+                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+
+                com.google.firebase.auth.FirebaseAuth.getInstance()
+                    .signInWithCredential(credential)
+                    .addOnCompleteListener { authTask ->
+                        if (authTask.isSuccessful) {
+                            val user = authTask.result?.user
+                            user?.let { authViewModel.handleGoogleSignIn(it) }
+                        } else {
+                            Toast.makeText(this, "Firebase Auth Failed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+            } catch (e: ApiException) {
+                Toast.makeText(this, "Google Sign-In Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         setContentView(R.layout.activity_main)
 
-        // Initialize AuthViewModel using userDao from RecipeApp
-        val sharedPrefs = getSharedPreferences("UserPrefs", MODE_PRIVATE)
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
         authViewModel = ViewModelProvider(
             this,
             AuthViewModelFactory(
@@ -55,15 +107,21 @@ class MainActivity : AppCompatActivity() {
             )
         )[AuthViewModel::class.java]
 
-        // Observe result — Success navigates to HomeActivity, Error shows Toast
         authViewModel.authResult.observe(this) { result ->
             when (result) {
                 is AuthViewModel.AuthResult.Success -> {
                     startActivity(Intent(this, HomeActivity::class.java))
                     finish()
                 }
+                is AuthViewModel.AuthResult.NeedsVerification -> {
+                    Toast.makeText(this, "Verification email sent! Please check your inbox.", Toast.LENGTH_LONG).show()
+                    updateToggleUI(isSignIn = true)
+                }
                 is AuthViewModel.AuthResult.Error -> {
                     Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                    if (result.message.contains("already registered", ignoreCase = true)) {
+                        updateToggleUI(isSignIn = true)
+                    }
                 }
             }
         }
@@ -77,7 +135,7 @@ class MainActivity : AppCompatActivity() {
         tvSubTitle = findViewById(R.id.Subtitle)
         layoutSignInFields = findViewById(R.id.layoutSignInFields)
         layoutSignUpFields = findViewById(R.id.layoutSignUpFields)
-        etSignInUser = findViewById(R.id.etSignInUser)
+        etSignInEmail = findViewById(R.id.etSignInEmail)
         etSignInPass = findViewById(R.id.etSignInPass)
         cbRememberMe = findViewById(R.id.cbRememberMe)
         btnForgot = findViewById(R.id.btnForgot)
@@ -98,65 +156,55 @@ class MainActivity : AppCompatActivity() {
             if (isSignInMode) handleSignIn() else handleSignUp()
         }
 
-        btnForgot.setOnClickListener { }
+        btnForgot.setOnClickListener {
+            val email = etSignInEmail.text.toString().trim()
+
+            if (email.isNotEmpty()) {
+                authViewModel.sendPasswordResetEmail(email)
+                Toast.makeText(this, "Checking for account: $email", Toast.LENGTH_SHORT).show()
+            } else {
+                etSignInEmail.error = "Enter your email here first"
+                etSignInEmail.requestFocus()
+                Toast.makeText(this, "Please enter your email first", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         btnBack.setOnClickListener {
             startActivity(Intent(this, SplashActivity::class.java))
             finish()
         }
 
-        // Auto-login if remember me was previously checked
-        val isRemembered = sharedPrefs.getBoolean("is_remembered", false)
-        val savedUser = sharedPrefs.getString("saved_user", null)
-        if (isRemembered && savedUser != null) {
-            etSignInUser.setText(savedUser)
-            etSignInPass.setText(sharedPrefs.getString("saved_pass", ""))
-            cbRememberMe.isChecked = true
-            startActivity(Intent(this, HomeActivity::class.java))
-            finish()
+        btnSignInGoogle.setOnClickListener {
+            val signInIntent = googleSignInClient.signInIntent
+            googleSignInLauncher.launch(signInIntent)
         }
     }
 
     private fun handleSignIn() {
-        val user = etSignInUser.text.toString().trim()
+        val email = etSignInEmail.text.toString().trim()
         val pass = etSignInPass.text.toString()
         val rememberMe = cbRememberMe.isChecked
 
-        if (user.isEmpty() || pass.isEmpty()) {
-            Toast.makeText(this, "Please enter login details", Toast.LENGTH_SHORT).show()
-            return
+        val emailPattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$"
+
+        when {
+            email.isEmpty() -> {
+                etSignInEmail.error = "Email required"
+                etSignInEmail.requestFocus()
+            }
+            !email.matches(emailPattern.toRegex()) -> {
+                etSignInEmail.error = "Please enter a valid email"
+                etSignInEmail.requestFocus()
+            }
+            pass.isEmpty() -> {
+                etSignInPass.error = "Password Required"
+                etSignInPass.requestFocus()
+            }
+            else -> {
+                authViewModel.signIn(email, pass, rememberMe)
+            }
         }
-
-        // Room validation happens inside AuthViewModel
-        authViewModel.signIn(user, pass, rememberMe)
     }
-
-//        val sharedPref = getSharedPreferences("UserPrefs", MODE_PRIVATE)
-//        val registeredUser = sharedPref.getString("registered_user", "")
-//        val registeredPass = sharedPref.getString("registered_pass", "")
-
-//        if (user.isEmpty() || pass.isEmpty()) {
-//            Toast.makeText(this, "Please enter login details", Toast.LENGTH_SHORT).show()
-//        }
-//        else if (user == registeredUser && pass == registeredPass) {
-//            val editor = sharedPref.edit()
-//
-//            if (rememberMe) {
-//                editor.putString("saved_user", user)
-//                editor.putString("saved_pass", pass)
-//                editor.putBoolean("is_remembered", true)
-//            } else {
-//                editor.remove("saved_user")
-//                editor.remove("saved_pass")
-//                editor.putBoolean("is_remembered", false)
-//            }
-//            editor.apply()
-//
-//            startActivity(Intent(this, HomeActivity::class.java))
-//            finish()
-//        } else {
-//            Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
-//        }
 
     private fun handleSignUp() {
         val fName = etFirstName.text.toString().trim()
@@ -166,7 +214,7 @@ class MainActivity : AppCompatActivity() {
         val pass = etPassSignUp.text.toString()
         val confirmPass = etPassConfirmSignUp.text.toString()
 
-        val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
+        val emailPattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$"
         val passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{6,}\$"
 
         when {

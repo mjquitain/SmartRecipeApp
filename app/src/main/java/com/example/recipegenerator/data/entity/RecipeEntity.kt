@@ -6,9 +6,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "recipes", indices = [Index(value = ["remoteId"], unique = true)])
 data class RecipeEntity(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey val remoteId: String,
     val id: Int = 0,
-    val remoteId: String,
     val name: String = "",
     val imageUrl: String = "",
     val category: String = "",

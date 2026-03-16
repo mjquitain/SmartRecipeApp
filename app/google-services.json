@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "909319533175",
+    "project_id": "castelli-recipes",
+    "storage_bucket": "castelli-recipes.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:909319533175:android:c7dc9a033cc945031a8c72",
+        "android_client_info": {
+          "package_name": "com.example.recipegenerator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "909319533175-o2gl2fg62oaj7n97qs3ubmserhj3j87q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.recipegenerator",
+            "certificate_hash": "e24350810cea744b8bf7393e0ba528852cf88de8"
+          }
+        },
+        {
+          "client_id": "909319533175-hv5qdshpoj134tl3rdgbd8a0isvcafrg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCopjBr12xe6j1N2urGzZtedzSThNiAYaE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "909319533175-hv5qdshpoj134tl3rdgbd8a0isvcafrg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

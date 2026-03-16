@@ -36,9 +36,8 @@ class RecipeRepository(
         }
     }
 
-    suspend fun getLocalRecipeById(id: String): RecipeEntity? {
-        val intId = id.toIntOrNull() ?: return null
-        return recipeDao.getRecipeById(intId)
+    suspend fun getLocalRecipeById(remoteId: String): RecipeEntity? {
+        return recipeDao.getRecipeByRemoteId(remoteId)
     }
 
     suspend fun getLocalRecipeByRemoteId(remoteId: String): RecipeEntity? {
@@ -57,4 +56,8 @@ class RecipeRepository(
     suspend fun filterByIngredient(ingredient: String) = apiService.filterByIngredient(ingredient)
 
     suspend fun getMealDetails(id: String) = apiService.getMealById(id)
+
+    suspend fun deleteByRemoteId(remoteId: String) {
+        recipeDao.deleteByRemoteId(remoteId)
+    }
 }

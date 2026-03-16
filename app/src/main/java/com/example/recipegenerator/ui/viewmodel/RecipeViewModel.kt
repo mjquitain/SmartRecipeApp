@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
+    private val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+    private val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+    private val _favoriteIds = MutableStateFlow<List<String>>(emptyList())
+    val favoriteIds: StateFlow<List<String>> = _favoriteIds.asStateFlow()
 
     // ─────────────────────────────────────────────
     // SEARCH / API STATE
@@ -26,13 +30,9 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
             initialValue = emptyList()
         )
 
-    // Search results merged with local favorites so the UI knows which are favorited
     val searchResultsWithFavorites: StateFlow<List<MealDto>> = _searchResults
-        .combine(favoriteRecipes) { remoteMeals, localFavorites ->
-            remoteMeals.map { remote ->
-                val isFav = localFavorites.any { it.remoteId == remote.idMeal }
-                remote.copy(isFavorite = isFav)
-            }
+        .combine(favoriteIds) { remoteMeals, cloudIds ->
+            remoteMeals.map { it.copy(isFavorite = cloudIds.contains(it.idMeal)) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // ─────────────────────────────────────────────
@@ -75,12 +75,55 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
+    private val _generatedResults = MutableStateFlow<List<MealDto>>(emptyList())
+    val generatedResults: StateFlow<List<MealDto>> = _generatedResults
+
+    val generatedWithFavorites: StateFlow<List<MealDto>> = _generatedResults
+        .combine(favoriteIds) { remoteMeals, cloudIds ->
+            remoteMeals.map { it.copy(isFavorite = cloudIds.contains(it.idMeal)) }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // ─────────────────────────────────────────────
     // INIT — load default recipes on startup
     // ─────────────────────────────────────────────
 
     init {
         searchRecipes("s")
+        fetchFirestoreFavorites()
+    }
+
+    private fun fetchFirestoreFavorites() {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("users").document(uid)
+            .addSnapshotListener { snapshot, _ ->
+                val cloudIds = snapshot?.get("favorites") as? List<String> ?: emptyList()
+                _favoriteIds.value = cloudIds
+
+                viewModelScope.launch {
+                    val localFavorites = repository.favoriteRecipes.first()
+                    val toDelete = localFavorites.filter { !cloudIds.contains(it.remoteId) }
+                    toDelete.forEach { repository.delete(it) }
+
+                    val localIds = localFavorites.map { it.remoteId }
+                    val missingIds = cloudIds.filter { !localIds.contains(it) }
+
+                    missingIds.forEach { id ->
+                        try {
+                            val response = repository.getRecipeById(id)
+                            response.meals?.firstOrNull()?.let {
+                                repository.insert(it.toEntity().copy(isFavorite = true))
+                            }
+                        } catch (e: Exception) { }
+                    }
+                }
+            }
+    }
+
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab = _selectedTab.asStateFlow()
+
+    fun setTab(index: Int) {
+        _selectedTab.value = index
     }
 
     // ─────────────────────────────────────────────
@@ -105,17 +148,30 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
      * If no → saves to Room as favorite.
      * Emits a snackbar message either way.
      */
-    fun toggleFavorite(recipe: RecipeEntity) {
-        viewModelScope.launch {
-            val existingFavorite = repository.getLocalRecipeByRemoteId(recipe.remoteId)
-            repository.toggleFavorite(recipe)
+    fun toggleFavorite(recipeId: String, isNowFavorite: Boolean, recipeEntity: RecipeEntity? = null) {
+        val uid = auth.currentUser?.uid ?: return
+        val userRef = db.collection("users").document(uid)
 
-            val message = if (existingFavorite != null) {
-                "Removed from Favorites"
-            } else {
-                "Added to Favorites"
+        viewModelScope.launch {
+            try {
+                if (isNowFavorite) {
+                    userRef.update(
+                        "favorites",
+                        com.google.firebase.firestore.FieldValue.arrayUnion(recipeId)
+                    )
+                    recipeEntity?.let { repository.insert(it.copy(isFavorite = true)) }
+                    _snackbarMessage.emit("Added to Favorites")
+                } else {
+                    userRef.update(
+                        "favorites",
+                        com.google.firebase.firestore.FieldValue.arrayRemove(recipeId)
+                    )
+                    repository.deleteByRemoteId(recipeId)
+                    _snackbarMessage.emit("Removed from Favorites")
+                }
+            } catch (e: Exception){
+                _errorMessage.value = "Sync failed: ${e.message}"
             }
-            _snackbarMessage.emit(message)
         }
     }
 
@@ -152,7 +208,7 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
             _errorMessage.value = null
             try {
                 val response = repository.filterByIngredient(ingredient)
-                _searchResults.value = response.meals ?: emptyList()
+                _generatedResults.value = response.meals ?: emptyList()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to load recipes: ${e.message}"
                 _searchResults.value = emptyList()
@@ -238,8 +294,8 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
     /**
      * Clear search results — used by the Clear button on HomeScreen
      */
-    fun clearResults() {
-        _searchResults.value = emptyList()
+    fun clearGeneratedResults() {
+        _generatedResults.value = emptyList()
     }
 
     /**

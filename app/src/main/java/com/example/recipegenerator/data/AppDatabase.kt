@@ -13,7 +13,7 @@ import com.example.recipegenerator.data.entity.UserEntity
 
 @Database(
     entities = [IngredientEntity::class, RecipeEntity::class, UserEntity::class],
-    version = 3,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

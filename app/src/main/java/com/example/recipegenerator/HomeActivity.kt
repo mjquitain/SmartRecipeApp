@@ -29,8 +29,14 @@ import com.example.recipegenerator.ui.viewmodel.RecipeViewModelFactory
 
 class HomeActivity : ComponentActivity() {
 
+    private val currentUid: String
+        get() = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     private val ingredientViewModel: IngredientViewModel by viewModels {
-        IngredientViewModelFactory((application as RecipeApp).ingredientRepository)
+        IngredientViewModelFactory(
+            repository = (application as RecipeApp).ingredientRepository,
+            userId = currentUid
+        )
     }
 
     private val recipeViewModel: RecipeViewModel by viewModels {
@@ -70,8 +76,9 @@ class HomeActivity : ComponentActivity() {
                             navigationNode = rootNavigationNode,
                             profileViewModel = profileViewModel,
                             onLogOut = {
-                                val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                sharedPref.edit()
+                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                                val sharedPrefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                                sharedPrefs.edit()
                                     .putBoolean("remember_me", false)
                                     .clear()
                                     .apply()

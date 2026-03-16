@@ -5,6 +5,7 @@ plugins {
 
     kotlin("plugin.serialization") version "2.0.21"
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -69,7 +70,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-
     // Navigation-related (taken from https://developer.android.com/guide/navigation#kts)
     val nav_version = "2.9.7"
 
@@ -101,4 +101,13 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    //Firebase
+    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
+
+    //Firebase Dependency
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 }

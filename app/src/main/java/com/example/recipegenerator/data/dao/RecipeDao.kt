@@ -13,8 +13,11 @@ interface RecipeDao {
     @Query("SELECT * FROM recipes WHERE id = :id")
     suspend fun getRecipeById(id: Int): RecipeEntity?
 
-    @Query("SELECT * FROM recipes WHERE remoteId = :remoteId LIMIT 1")
+    @Query("SELECT * FROM recipes WHERE remoteId = :remoteId")
     suspend fun getRecipeByRemoteId(remoteId: String): RecipeEntity?
+
+    @Query("DELETE FROM recipes WHERE remoteId = :remoteId")
+    suspend fun deleteByRemoteId(remoteId: String)
 
     @Query("SELECT * FROM recipes WHERE isFavorite = 1")
     fun getFavoriteRecipes(): Flow<List<RecipeEntity>>
