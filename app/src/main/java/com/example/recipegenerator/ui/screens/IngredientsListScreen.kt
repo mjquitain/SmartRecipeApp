@@ -1,5 +1,6 @@
 package com.example.recipegenerator.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -19,50 +20,78 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.recipegenerator.model.Ingredient
+import com.example.recipegenerator.data.entity.IngredientEntity
 import com.example.recipegenerator.ui.components.MinimalListItem
-import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
+import com.example.recipegenerator.ui.theme.Lime10
+import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoField
 import java.util.*
+import kotlin.math.max
+
+
+private val expirationDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
+
+
+
+private val regexNumeric = Regex("^\\s*(?<number>-?\\d+(?:\\.\\d+)?)\\s*$")
+
+private val expiryMarkerPalatableColor = Color(0.3f, 0.9f, 0.1f)
+private val expiryMarkerWeekBeforeExpiringColor = Color(0.9f, 0.9f, 0.1f)
+private val expiryMarkerHalfWeekBeforeExpiringColor = Color(0.9f, 0.5f, 0.1f)
+private val expiryMarkerExpiredColor = Color(0.9f, 0.1f, 0.1f)
+private val expiryMarkerUnspecifiedColor = Color(0.2f, 0.4f, 0.7f)
+private val expiryMarkerExceptionColor = Color(1f, 0f, 1f)
+
+
+
+private fun _tryGetDate(from : String) : LocalDate? {
+    return try {
+        LocalDate.parse(from, expirationDateFormat)
+    } catch (parseError : DateTimeParseException) {
+        null
+    }
+}
+
+// This will return only between -1 to whatever is the max number
+// of an integer/long. -1 will mark the entry as expired. It is
+// limited to -1 and above to keep negative numbers reserved for
+// other exceptions. -2 is a reserved number to mean "Unspecified".
+// Numbers even lower are just exception numbers.
+private fun _getRelativeLifespanFromString(dateString : String) : Long {
+    if (dateString.isBlank()) { return -2L }
+    val date = _tryGetDate(dateString) ?: return -3L
+    return max(date.minusDays(LocalDate.now().toEpochDay()).toEpochDay(), -1)
+}
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IngredientsListScreen(
     padding: PaddingValues = PaddingValues(),
-    onAddClick: () -> Unit = {},
-    onFilterClick: () -> Unit = {},
+    ingredientViewModel: IngredientViewModel,
     onProfileClick: () -> Unit = {}
 ) {
-    // State management
-    var ingredients by remember {
-        mutableStateOf(
-            listOf(
-                Ingredient("1", "Chicken", "Meat", "500", "g", "2026-02-20"),
-                Ingredient("2", "Egg", "Dairy", "12", "pieces", "2026-02-25"),
-                Ingredient("3", "Spinach", "Vegetable", "200", "g", "2026-02-15"),
-                Ingredient("4", "Tomato", "Vegetable", "5", "pieces", "2026-02-18"),
-                Ingredient("5", "Onion", "Vegetable", "3", "pieces", "2026-02-22"),
-                Ingredient("6", "Garlic", "Vegetable", "100", "g", "2026-02-28"),
-                Ingredient("7", "Beef", "Meat", "1", "kg", "2026-02-17"),
-                Ingredient("8", "Fish", "Seafood", "750", "g", "2026-02-14"),
-                Ingredient("9", "Potato", "Vegetable", "1.5", "kg", "2026-03-01"),
-                Ingredient("10", "Carrot", "Vegetable", "500", "g", "2026-02-19")
-            )
-        )
-    }
+    // Observe Room database via StateFlow — updates automatically on any CRUD
+    val ingredients by ingredientViewModel.ingredients.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
-    var ingredientToEdit by remember { mutableStateOf<Ingredient?>(null) }
+    var ingredientToEdit by remember { mutableStateOf<IngredientEntity?>(null) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
-    // Filter logic
     val filteredIngredients = if (selectedCategory != null) {
         ingredients.filter { it.category == selectedCategory }
     } else {
@@ -75,9 +104,10 @@ fun IngredientsListScreen(
             .padding(padding),
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lime10),
                 title = { Text("Ingredients", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { /* TODO: Share */ }) {
+                    IconButton(onClick = { }) {
                         Icon(Icons.Outlined.Share, "Share")
                     }
                     Box(
@@ -106,9 +136,7 @@ fun IngredientsListScreen(
             ) {
                 val autoWeight = Modifier.weight(1f)
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "${filteredIngredients.size} ingredient${if (filteredIngredients.size != 1) "s" else ""}",
                         fontSize = 20.sp,
@@ -125,59 +153,40 @@ fun IngredientsListScreen(
                             modifier = shrunkenButtonModifier,
                             onClick = { showAddDialog = true }
                         ) {
-                            Icon(
-                                imageVector = Icons.Sharp.Add,
-                                contentDescription = "Add ingredient"
-                            )
+                            Icon(imageVector = Icons.Sharp.Add, contentDescription = "Add ingredient")
                         }
                         IconButton(
                             modifier = shrunkenButtonModifier,
                             onClick = { showFilterDialog = true }
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ArrowDropDown,
-                                contentDescription = "Filter"
-                            )
+                            Icon(imageVector = Icons.Outlined.ArrowDropDown, contentDescription = "Filter")
                         }
                     }
                 }
 
-                // Active filter chip
                 if (selectedCategory != null) {
                     FilterChip(
                         selected = true,
                         onClick = { selectedCategory = null },
                         label = { Text(selectedCategory!!) },
                         trailingIcon = {
-                            Icon(
-                                Icons.Outlined.Close,
-                                "Remove filter",
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.Outlined.Close, "Remove filter", modifier = Modifier.size(16.dp))
                         }
                     )
                 }
 
                 if (filteredIngredients.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                Icons.Outlined.ShoppingCart,
-                                null,
+                                Icons.Outlined.ShoppingCart, null,
                                 modifier = Modifier.size(64.dp),
                                 tint = Color.Gray.copy(alpha = 0.5f)
                             )
-                            Text(
-                                "No ingredients found",
-                                fontSize = 16.sp,
-                                color = Color.Gray
-                            )
+                            Text("No ingredients found", fontSize = 16.sp, color = Color.Gray)
                         }
                     }
                 } else {
@@ -187,7 +196,7 @@ fun IngredientsListScreen(
                             .scrollable(state = listScroller, orientation = Orientation.Vertical),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        items(filteredIngredients) { ingredient ->
+                        items(filteredIngredients, key = { "${it.name}_${it.expirationDate}" }) { ingredient ->
                             IngredientListItem(
                                 ingredient = ingredient,
                                 onEditClick = {
@@ -195,7 +204,8 @@ fun IngredientsListScreen(
                                     showEditDialog = true
                                 },
                                 onDeleteClick = {
-                                    ingredients = ingredients.filter { it.id != ingredient.id }
+                                    // DELETE — calls Room via ViewModel
+                                    ingredientViewModel.delete(ingredient)
                                 }
                             )
                         }
@@ -209,10 +219,11 @@ fun IngredientsListScreen(
     if (showAddDialog) {
         IngredientDialog(
             title = "Add Ingredient",
+            userId = ingredientViewModel.userId,
             onDismiss = { showAddDialog = false },
             onSave = { newIngredient ->
-                val id = (ingredients.maxOfOrNull { it.id.toIntOrNull() ?: 0 } ?: 0) + 1
-                ingredients = ingredients + newIngredient.copy(id = id.toString())
+                // INSERT — calls Room via ViewModel
+                ingredientViewModel.insert(newIngredient)
                 showAddDialog = false
             }
         )
@@ -222,15 +233,15 @@ fun IngredientsListScreen(
     if (showEditDialog && ingredientToEdit != null) {
         IngredientDialog(
             title = "Edit Ingredient",
+            userId = ingredientViewModel.userId,
             ingredient = ingredientToEdit,
             onDismiss = {
                 showEditDialog = false
                 ingredientToEdit = null
             },
             onSave = { updatedIngredient ->
-                ingredients = ingredients.map {
-                    if (it.id == updatedIngredient.id) updatedIngredient else it
-                }
+                // UPDATE — calls Room via ViewModel
+                ingredientViewModel.update(updatedIngredient)
                 showEditDialog = false
                 ingredientToEdit = null
             }
@@ -253,62 +264,48 @@ fun IngredientsListScreen(
 
 @Composable
 fun IngredientListItem(
-    ingredient: Ingredient,
+    ingredient: IngredientEntity,
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
     val containerTitleFontSize = 16.sp
     val selectableContainerAlignment = Alignment.CenterVertically
-
     val titleContainer = Modifier
         .fillMaxSize()
-        .padding(16.dp, 12.dp)
-
+        .padding(horizontal = 16.dp)
+        .height(50.dp)
     val actionsContainer = Modifier
-        .defaultMinSize(100.dp)
-        .width(100.dp)
+        .fillMaxWidth(0.3f)
         .fillMaxHeight()
         .background(MaterialTheme.colorScheme.primary)
 
-    // Calculate days until expiration
-    val daysUntilExpiration = try {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val expDate = sdf.parse(ingredient.expirationDate)
-        val today = Date()
-        val diff = expDate.time - today.time
-        (diff / (1000 * 60 * 60 * 24)).toInt()
-    } catch (e: Exception) {
-        999
-    }
+    val lifespanOrCode = _getRelativeLifespanFromString(ingredient.expirationDate)
 
     val expirationColor = when {
-        daysUntilExpiration < 0 -> Color(0.9f, 0.1f, 0.1f) // Expired - Red
-        daysUntilExpiration <= 3 -> Color(0.9f, 0.5f, 0.1f) // Expiring soon - Orange
-        daysUntilExpiration <= 7 -> Color(0.9f, 0.9f, 0.1f) // Expiring this week - Yellow
-        else -> Color(0.3f, 0.9f, 0.1f) // Fresh - Green
+        lifespanOrCode > 7 -> expiryMarkerPalatableColor;
+        lifespanOrCode > 3 -> expiryMarkerWeekBeforeExpiringColor;
+        lifespanOrCode >= 0 -> expiryMarkerHalfWeekBeforeExpiringColor;
+        lifespanOrCode == -1L -> expiryMarkerExpiredColor;
+
+        // Non-lifespan colours
+        lifespanOrCode == -2L -> expiryMarkerUnspecifiedColor;
+        else /* -3 or so */ -> expiryMarkerExceptionColor;
     }
 
     MinimalListItem {
-        Row(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxSize().height(70.dp)) {
             val autoWeight = Modifier.weight(1f)
-
             Row(
                 modifier = titleContainer.weight(1.0f),
                 verticalAlignment = selectableContainerAlignment,
             ) {
                 Column(modifier = autoWeight) {
-                    Text(
-                        ingredient.name,
-                        fontSize = containerTitleFontSize,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(ingredient.name, fontSize = containerTitleFontSize, fontWeight = FontWeight.Medium)
                     Text(
                         "${ingredient.quantity} ${ingredient.unit} • ${ingredient.category}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
+                        fontSize = 13.sp, color = Color.Gray
                     )
                 }
-                Spacer(Modifier.width(10.dp))
                 Box(
                     Modifier
                         .size(20.dp)
@@ -318,21 +315,14 @@ fun IngredientListItem(
             }
             Box(modifier = actionsContainer) {
                 Row(
-                    verticalAlignment = selectableContainerAlignment
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onEditClick, modifier = autoWeight) {
-                        Icon(
-                            imageVector = Icons.Outlined.Create,
-                            contentDescription = "Edit",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                        Icon(Icons.Outlined.Create, "Edit", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                     IconButton(onClick = onDeleteClick, modifier = autoWeight) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                        Icon(Icons.Outlined.Delete, "Delete", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -340,23 +330,31 @@ fun IngredientListItem(
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IngredientDialog(
     title: String,
-    ingredient: Ingredient? = null,
+    userId: String,
+    ingredient: IngredientEntity? = null,
     onDismiss: () -> Unit,
-    onSave: (Ingredient) -> Unit
+    onSave: (IngredientEntity) -> Unit
 ) {
+    val toastNameRequired = Toast.makeText(LocalContext.current, "Name is required", Toast.LENGTH_SHORT)
+    val toastQuantityRequired = Toast.makeText(LocalContext.current, "Quantity is required", Toast.LENGTH_SHORT)
+    val toastQuantityIsNegative = Toast.makeText(LocalContext.current, "Quantity must be 0.0 or larger.", Toast.LENGTH_SHORT)
+    val toastQuantityMalformed = Toast.makeText(LocalContext.current, "Quantity does not contain a proper number.", Toast.LENGTH_SHORT)
+    val toastExpiryMalformed = Toast.makeText(LocalContext.current, "Expiry date is malformed.", Toast.LENGTH_SHORT)
+
     var name by remember { mutableStateOf(ingredient?.name ?: "") }
     var category by remember { mutableStateOf(ingredient?.category ?: "Vegetable") }
-    var quantity by remember { mutableStateOf(ingredient?.quantity ?: "") }
+    var quantity by remember { mutableStateOf(ingredient?.quantity?.toString() ?: "0.0")}
     var unit by remember { mutableStateOf(ingredient?.unit ?: "g") }
     var expirationDate by remember { mutableStateOf(ingredient?.expirationDate ?: "") }
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showUnitMenu by remember { mutableStateOf(false) }
 
-    val categories = listOf("Meat", "Seafood", "Vegetable", "Fruit", "Dairy", "Grain", "Spice", "Other")
+    val categories = listOf("Protein", "Dairy", "Condiment", "Grain", "Fruit", "Vegetable")
     val units = listOf("g", "kg", "ml", "l", "pieces", "tbsp", "tsp", "cups")
 
     Dialog(onDismissRequest = onDismiss) {
@@ -376,131 +374,107 @@ fun IngredientDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Outlined.Close, "Close")
-                    }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, "Close") }
                 }
 
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    value = name, onValueChange = { name = it },
                     label = { Text("Ingredient Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
 
-                // Category Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = showCategoryMenu,
-                    onExpandedChange = { showCategoryMenu = it }
-                ) {
+                ExposedDropdownMenuBox(expanded = showCategoryMenu, onExpandedChange = { showCategoryMenu = it }) {
                     OutlinedTextField(
-                        value = category,
-                        onValueChange = {},
-                        readOnly = true,
+                        value = category, onValueChange = {}, readOnly = true,
                         label = { Text("Category") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryMenu) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor()
                     )
-                    ExposedDropdownMenu(
-                        expanded = showCategoryMenu,
-                        onDismissRequest = { showCategoryMenu = false }
-                    ) {
+                    ExposedDropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                         categories.forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = {
-                                    category = cat
-                                    showCategoryMenu = false
-                                }
-                            )
+                            DropdownMenuItem(text = { Text(cat) }, onClick = { category = cat; showCategoryMenu = false })
                         }
                     }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = quantity,
                         onValueChange = { quantity = it },
                         label = { Text("Quantity") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                        modifier = Modifier.weight(1f), singleLine = true
                     )
-
-                    // Unit Dropdown
                     ExposedDropdownMenuBox(
-                        expanded = showUnitMenu,
-                        onExpandedChange = { showUnitMenu = it },
+                        expanded = showUnitMenu, onExpandedChange = { showUnitMenu = it },
                         modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
-                            value = unit,
-                            onValueChange = {},
-                            readOnly = true,
+                            value = unit, onValueChange = {}, readOnly = true,
                             label = { Text("Unit") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor()
                         )
-                        ExposedDropdownMenu(
-                            expanded = showUnitMenu,
-                            onDismissRequest = { showUnitMenu = false }
-                        ) {
+                        ExposedDropdownMenu(expanded = showUnitMenu, onDismissRequest = { showUnitMenu = false }) {
                             units.forEach { u ->
-                                DropdownMenuItem(
-                                    text = { Text(u) },
-                                    onClick = {
-                                        unit = u
-                                        showUnitMenu = false
-                                    }
-                                )
+                                DropdownMenuItem(text = { Text(u) }, onClick = { unit = u; showUnitMenu = false })
                             }
                         }
                     }
                 }
 
                 OutlinedTextField(
-                    value = expirationDate,
-                    onValueChange = { expirationDate = it },
+                    value = expirationDate, onValueChange = { expirationDate = it },
                     label = { Text("Expiration Date (yyyy-MM-dd)") },
                     placeholder = { Text("2026-02-20") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel")
-                    }
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                     Button(
                         onClick = {
-                            if (name.isNotBlank() && quantity.isNotBlank()) {
-                                onSave(
-                                    Ingredient(
-                                        id = ingredient?.id ?: "",
-                                        name = name,
-                                        category = category,
-                                        quantity = quantity,
-                                        unit = unit,
-                                        expirationDate = expirationDate
-                                    )
-                                )
+                            if (name.isBlank()) {
+                                toastNameRequired.show()
+                                return@Button
+                            } else if (quantity.isBlank()) {
+                                toastQuantityRequired.show()
+                                return@Button
+                            } else if (expirationDate.isNotBlank() && _tryGetDate(expirationDate) == null) {
+                                toastExpiryMalformed.show()
+                                return@Button
                             }
+
+                            val quantityCapture = regexNumeric.find(quantity)
+
+                            if (quantityCapture == null || quantityCapture.groups["number"] == null) {
+                                toastQuantityMalformed.show()
+                                return@Button
+                            }
+
+                            val realQuantity = quantityCapture.groups["number"]!!.value.toDouble()
+
+                            if (realQuantity < 0L) {
+                                toastQuantityIsNegative.show()
+                                return@Button
+                            }
+
+                            onSave(
+                                IngredientEntity(
+                                    userId = userId,
+                                    name = name,
+                                    category = category,
+                                    quantity = quantityCapture.groups["number"]!!.value.toDouble(),
+                                    unit = unit,
+                                    expirationDate = expirationDate
+                                )
+                            )
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank() && quantity.isNotBlank()
-                    ) {
-                        Text("Save")
-                    }
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Save") }
                 }
             }
         }
@@ -520,9 +494,7 @@ fun FilterDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Row(
@@ -531,13 +503,9 @@ fun FilterDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Filter by Category", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Outlined.Close, "Close")
-                    }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, "Close") }
                 }
-
                 Text("Select a category to filter:", fontSize = 14.sp, color = Color.Gray)
-
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     availableCategories.forEach { cat ->
                         FilterChip(
@@ -548,27 +516,20 @@ fun FilterDialog(
                         )
                     }
                 }
-
                 if (selectedCategory != null) {
                     OutlinedButton(
-                        onClick = {
-                            onCategorySelect(null)
-                            onDismiss()
-                        },
+                        onClick = { onCategorySelect(null); onDismiss() },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Clear Filter")
-                    }
+                    ) { Text("Clear Filter") }
                 }
             }
         }
     }
 }
 
-@Composable
+
 @Preview(showBackground = true)
-fun IngredientsListScreenPreview() {
-    RecipeGeneratorTheme(dynamicColor = false) {
-        IngredientsListScreen()
-    }
+@Composable
+fun Ingredit() {
+    IngredientDialog("Sample", "", null, {}, {})
 }

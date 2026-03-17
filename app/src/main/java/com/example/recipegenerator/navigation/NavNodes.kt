@@ -8,7 +8,8 @@ import kotlinx.serialization.Serializable
     @Serializable object HomeNode
     @Serializable object IngredientsNode
     @Serializable object RecipesNode
-    // ... TODO: Add more nodes under HomeNode when creating new pages.
+
+    @Serializable data class RecipeDetailNode(val recipeId: String)
 }
 
 @Serializable object SettingsGraph {

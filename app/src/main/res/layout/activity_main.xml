@@ -118,12 +118,12 @@
                         android:visibility="visible">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etSignInUser"
+                            android:id="@+id/etSignInEmail"
                             android:layout_width="match_parent"
                             android:layout_height="55dp"
                             android:layout_marginTop="40dp"
                             android:background="@drawable/bg_tab_indicator"
-                            android:hint="Email/Username"
+                            android:hint="Email"
                             android:paddingStart="20dp"
                             android:textColor="@color/white"
                             android:textColorHint="@color/white"
