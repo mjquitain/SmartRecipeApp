@@ -46,6 +46,7 @@ class AuthViewModel(
                         sharedPreferences.edit()
                             .putBoolean("is_remembered", rememberMe)
                             .putString("saved_user", if (rememberMe) email else "")
+                            .putString("current_username", user.uid)
                             .apply()
 
                         _authResult.postValue(AuthResult.Success)
@@ -108,6 +109,11 @@ class AuthViewModel(
 
         viewModelScope.launch{
             repository.createOrUpdateUser(entity)
+
+            sharedPreferences.edit()
+                .putString("crrent_username", firebaseUser.uid)
+                .apply()
+
             _authResult.postValue(AuthResult.Success)
         }
     }

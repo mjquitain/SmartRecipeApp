@@ -22,6 +22,7 @@ class SplashActivity : AppCompatActivity() {
 
         if (isRemembered) {
             startActivity(Intent(this, HomeActivity::class.java))
+            finish()
         } else {
             binding.startBtn.setOnClickListener {
                 startActivity(Intent(this, MainActivity::class.java))

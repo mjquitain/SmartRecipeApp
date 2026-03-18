@@ -5,14 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,65 +21,58 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.recipegenerator.data.entity.RecipeEntity
 import com.example.recipegenerator.network.MealDto
-import com.example.recipegenerator.ui.theme.Brown30
-import com.example.recipegenerator.ui.theme.Brown50
-import com.example.recipegenerator.ui.theme.Lime10
+import com.example.recipegenerator.ui.theme.scaledSp
+import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
 import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
-import com.example.recipegenerator.ui.viewmodel.toEntity
 
-/**
- * HomeScreen
- *
- * FLOW:
- * 1. User selects ingredients
- * 2. Clicks Generate → calls MealDB API via recipeViewModel.filterByIngredient()
- * 3. Results appear as cards BELOW on this same screen
- * 4. User taps a card → onRecipeClick(meal) → navigates to RecipeDetailNode
- *
- * onNavigateToRecipes is kept for the nav bar tab only, NOT for the generate button
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     padding: PaddingValues = PaddingValues(),
     recipeViewModel: RecipeViewModel,
-    ingredientViewModel: com.example.recipegenerator.ui.viewmodel.IngredientViewModel,
+    ingredientViewModel: IngredientViewModel,
     onProfileClick: () -> Unit = {},
     onRecipeClick: (MealDto) -> Unit = {}
-
 ) {
     var inputText by remember { mutableStateOf("") }
-    var selectedIngredients by remember { mutableStateOf(setOf<String>()) }
-    var hasSearched by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        recipeViewModel.clearGeneratedResults()
-    }
-
+    val selectedIngredients by recipeViewModel.selectedIngredients.collectAsState()
     val isLoading by recipeViewModel.isLoading.collectAsState()
     val errorMessage by recipeViewModel.errorMessage.collectAsState()
     val searchResults by recipeViewModel.generatedWithFavorites.collectAsState()
     val myPantry by ingredientViewModel.ingredients.collectAsState()
     val availableIngredients = myPantry.map { it.name }.distinct()
 
+    val hasSearched = searchResults.isNotEmpty()
+
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+        modifier = Modifier.fillMaxSize().padding(padding),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lime10),
-                title = { Text("Home", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                ),
+                title = {
+                    Text(
+                        "Home",
+                        fontSize = scaledSp(20f),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
                 actions = {
                     IconButton(onClick = { }) {
-                        Icon(Icons.Default.Share, "Share")
+                        Icon(
+                            Icons.Default.Share, "Share",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
                     }
                     Box(
                         modifier = Modifier
@@ -92,7 +82,10 @@ fun HomeScreen(
                             .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, "Profile", tint = Color.White)
+                        Icon(
+                            Icons.Default.Person, "Profile",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                     Spacer(Modifier.width(16.dp))
                 }
@@ -104,180 +97,244 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // ─── Recipe Generation Card ───────────────────────────────────
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Brown50
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp)
-                            .background(Brown30),
+                        modifier = Modifier.fillMaxWidth().padding(20.dp)
                     ) {
                         Text(
                             "Want to look for a meal?",
-                            fontSize = 18.sp,
+                            fontSize = scaledSp(16f),
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(top = 14.dp, start = 14.dp, end = 14.dp)
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         )
 
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
 
                         Text(
                             "Enter the ingredients and we'll suggest delicious recipes.",
-                            fontSize = 14.sp,
-                            color = Color.White,
+                            fontSize = scaledSp(14f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp)
+                            modifier = Modifier.fillMaxWidth()
                         )
 
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
 
+                        // ─── Text Input ───────────────────────────────────
                         OutlinedTextField(
                             value = inputText,
                             onValueChange = { inputText = it },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
-                            placeholder = { Text("Enter ingredient...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = {
+                                Text(
+                                    "Enter ingredient...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             trailingIcon = {
                                 IconButton(onClick = {
-                                    if (inputText.isNotBlank() && inputText.lowercase() !in selectedIngredients) {
-                                        selectedIngredients = selectedIngredients + inputText.lowercase().trim()
-                                        inputText = ""
+                                    val trimmed = inputText.trim().lowercase()
+                                    if (trimmed.isNotBlank() && trimmed !in selectedIngredients) {
+                                        recipeViewModel.addIngredient(trimmed)
                                     }
+                                    inputText = ""
                                 }) {
-                                    Icon(Icons.Default.Add, "Add ingredient")
+                                    Icon(
+                                        Icons.Default.Add, "Add ingredient",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    val trimmed = inputText.trim().lowercase()
+                                    if (trimmed.isNotBlank() && trimmed !in selectedIngredients) {
+                                        recipeViewModel.addIngredient(trimmed)
+                                    }
+                                    inputText = ""
+                                }
+                            ),
                             shape = RoundedCornerShape(30.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedContainerColor = Color.White,
-                                focusedContainerColor = Color.White
-                            )
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            singleLine = true
                         )
 
                         Spacer(Modifier.height(8.dp))
 
+                        // ─── Selected Ingredient Chips ────────────────────
                         if (selectedIngredients.isNotEmpty()) {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 14.dp)) {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(selectedIngredients.toList()) { ingredient ->
                                     InputChip(
                                         selected = true,
-                                        onClick = { selectedIngredients = selectedIngredients - ingredient },
-                                        label = { Text(ingredient) },
-                                        trailingIcon = {
-                                            Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(16.dp))
+                                        onClick = {
+                                            recipeViewModel.removeIngredient(ingredient)
                                         },
-                                        colors = InputChipDefaults.inputChipColors(selectedContainerColor = Color.White, selectedLabelColor = Color.Black),
-                                        shape = RoundedCornerShape(20.dp),
+                                        label = {
+                                            Text(ingredient, fontSize = scaledSp(13f))
+                                        },
+                                        trailingIcon = {
+                                            Icon(
+                                                Icons.Default.Close, "Remove",
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        },
+                                        colors = InputChipDefaults.inputChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                            selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        shape = RoundedCornerShape(20.dp)
                                     )
                                 }
                             }
+                            Spacer(Modifier.height(8.dp))
                         }
 
-                        Spacer(Modifier.height(8.dp))
-
-                        Text("Available Ingredients:",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp)
-                        )
-
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 14.dp)) {
-                            items(availableIngredients) { ingredient ->
-                                FilterChip(
-                                    selected = ingredient in selectedIngredients,
-                                    onClick = {
-                                        selectedIngredients = if (ingredient in selectedIngredients)
-                                            selectedIngredients - ingredient
-                                        else
-                                            selectedIngredients + ingredient
-                                    },
-                                    label = { Text(ingredient) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = Brown50,
-                                        labelColor = Color.White,
-                                        selectedContainerColor = Color.White,
-                                        selectedLabelColor = Color.Black
-                                    ),
-                                    shape = RoundedCornerShape(20.dp),
-                                )
+                        // ─── Pantry Ingredient Chips ──────────────────────
+                        if (availableIngredients.isNotEmpty()) {
+                            Text(
+                                "Available Ingredients:",
+                                fontSize = scaledSp(14f),
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(availableIngredients) { ingredient ->
+                                    FilterChip(
+                                        selected = ingredient in selectedIngredients,
+                                        onClick = {
+                                            if (ingredient in selectedIngredients)
+                                                recipeViewModel.removeIngredient(ingredient)
+                                            else
+                                                recipeViewModel.addIngredient(ingredient)
+                                        },
+                                        label = { Text(ingredient, fontSize = scaledSp(13f)) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            labelColor = MaterialTheme.colorScheme.onSurface,
+                                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = ingredient in selectedIngredients,
+                                            borderColor = MaterialTheme.colorScheme.outline,
+                                            selectedBorderColor = MaterialTheme.colorScheme.primary,
+                                            borderWidth = 1.dp,
+                                            selectedBorderWidth = 1.dp
+                                        ),
+                                        shape = RoundedCornerShape(20.dp)
+                                    )
+                                }
                             }
+                            Spacer(Modifier.height(8.dp))
                         }
 
-                        Spacer(Modifier.height(8.dp))
-
+                        // ─── Generate Button ──────────────────────────────
                         Button(
                             onClick = {
                                 if (selectedIngredients.isNotEmpty()) {
-                                    hasSearched = true
-                                    recipeViewModel.filterByIngredient(selectedIngredients.first())
+                                    recipeViewModel.filterByIngredient(
+                                        selectedIngredients.first()
+                                    )
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 14.dp, start = 14.dp, end = 14.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
                             colors = ButtonDefaults.buttonColors(
-                                disabledContentColor = Color.Black,
-                                containerColor = Color.White,
-                                contentColor = Color.Black
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                                disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                             ),
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(12.dp),
                             enabled = selectedIngredients.isNotEmpty() && !isLoading
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Text("Generate Recipes", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                Text(
+                                    "Generate Recipes",
+                                    fontSize = scaledSp(16f),
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
                     }
                 }
             }
 
+            // ─── Generated Recipes Header ─────────────────────────────────
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Generated Recipes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Generated Recipes",
+                        fontSize = scaledSp(16f),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                     if (searchResults.isNotEmpty()) {
                         TextButton(onClick = { recipeViewModel.clearGeneratedResults() }) {
-                            Text("Clear", fontSize = 12.sp)
+                            Text(
+                                "Clear",
+                                fontSize = scaledSp(12f),
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
             }
 
+            // ─── Results ──────────────────────────────────────────────────
             when {
                 isLoading -> {
                     item {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
+                            modifier = Modifier.fillMaxWidth().height(200.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                CircularProgressIndicator()
-                                Text("Searching for recipes...", fontSize = 14.sp, color = Color.Gray)
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    "Searching for recipes...",
+                                    fontSize = scaledSp(14f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -286,9 +343,7 @@ fun HomeScreen(
                 errorMessage != null -> {
                     item {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
+                            modifier = Modifier.fillMaxWidth().height(200.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -298,23 +353,25 @@ fun HomeScreen(
                                 Icon(
                                     Icons.Default.Warning, null,
                                     modifier = Modifier.size(48.dp),
-                                    tint = Color.Red.copy(alpha = 0.7f)
+                                    tint = MaterialTheme.colorScheme.error
                                 )
-                                Text(errorMessage ?: "Something went wrong", color = Color.Red)
+                                Text(
+                                    errorMessage ?: "Something went wrong",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = scaledSp(14f)
+                                )
                                 TextButton(onClick = { recipeViewModel.clearError() }) {
-                                    Text("Dismiss")
+                                    Text("Dismiss", color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
                     }
                 }
 
-                !hasSearched || searchResults.isEmpty() -> {
+                !hasSearched -> {
                     item {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
+                            modifier = Modifier.fillMaxWidth().height(200.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -324,10 +381,18 @@ fun HomeScreen(
                                 Icon(
                                     Icons.Default.Search, null,
                                     modifier = Modifier.size(48.dp),
-                                    tint = Color.Gray.copy(alpha = 0.5f)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
-                                Text("No recipes generated yet", fontSize = 14.sp, color = Color.Gray)
-                                Text("Select ingredients and click Generate", fontSize = 12.sp, color = Color.Gray)
+                                Text(
+                                    "No recipes generated yet",
+                                    fontSize = scaledSp(14f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Select ingredients and click Generate",
+                                    fontSize = scaledSp(12f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
                             }
                         }
                     }
@@ -348,44 +413,30 @@ fun HomeScreen(
                                     )
                                 }
                             }
-                            if (rowMeals.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                            if (rowMeals.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                     }
-
                 }
             }
         }
     }
 }
 
-/**
- * Recipe Card
- */
+// ─── Generated Recipe Card ────────────────────────────────────────────────────
 @Composable
-private fun GeneratedRecipeCard(
-    meal: MealDto,
-    onClick: () -> Unit
-) {
+private fun GeneratedRecipeCard(meal: MealDto, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.85f),
+        modifier = Modifier.fillMaxWidth().aspectRatio(0.85f),
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(Modifier.fillMaxSize()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(meal.strMealThumb)
-                    .crossfade(true)
-                    .build(),
+                    .data(meal.strMealThumb).crossfade(true).build(),
                 contentDescription = meal.strMeal,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -397,11 +448,21 @@ private fun GeneratedRecipeCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.9f))
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(8.dp)
             ) {
-                Text(meal.strMeal, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(meal.strCategory ?: "Recipe", fontSize = 11.sp, color = Color.Gray)
+                Text(
+                    meal.strMeal,
+                    fontSize = scaledSp(14f),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    meal.strCategory ?: "Recipe",
+                    fontSize = scaledSp(11f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

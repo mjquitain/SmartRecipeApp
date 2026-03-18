@@ -1,104 +1,74 @@
 package com.example.recipegenerator
 
 import android.content.Context
-import android.content.Intent
-import android.app.Activity
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import android.view.View
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
-import com.example.recipegenerator.data.AppDatabase
-import com.example.recipegenerator.navigation.LandingGraph
-import com.example.recipegenerator.navigation._ROOTGRAPH
-import com.example.recipegenerator.navigation.naviSetHomeDestinations
-import com.example.recipegenerator.navigation.naviSetSettingsDestinations
-import com.example.recipegenerator.ui.theme.RecipeGeneratorTheme
-import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
-import com.example.recipegenerator.ui.viewmodel.IngredientViewModelFactory
-import com.example.recipegenerator.ui.viewmodel.ProfileViewModel
-import com.example.recipegenerator.ui.viewmodel.ProfileViewModelFactory
-import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
-import com.example.recipegenerator.ui.viewmodel.RecipeViewModelFactory
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
+import com.example.recipegenerator.databinding.ActivityHomeBinding
+import com.example.recipegenerator.ui.viewmodel.*
 
-class HomeActivity : ComponentActivity() {
+class HomeActivity : AppCompatActivity() {
 
-    private val currentUid: String
-        get() = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    private lateinit var binding: ActivityHomeBinding
+    private val app get() = application as RecipeApp
 
-    private val ingredientViewModel: IngredientViewModel by viewModels {
-        IngredientViewModelFactory(
-            repository = (application as RecipeApp).ingredientRepository,
-            userId = currentUid
-        )
+    // Reads userId once — shared by ingredientViewModel and notification sync
+    private val userId: String by lazy {
+        getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+            .getString("current_username", "") ?: ""
     }
 
-    private val recipeViewModel: RecipeViewModel by viewModels {
-        RecipeViewModelFactory((application as RecipeApp).recipeRepository)
+    val themeViewModel: ThemeViewModel by viewModels {
+        ThemeViewModelFactory(app.appSettingsRepository)
     }
 
-    private val profileViewModel: ProfileViewModel by viewModels {
+    val appSettingsViewModel: AppSettingsViewModel by viewModels {
+        AppSettingsViewModelFactory(app.appSettingsRepository)
+    }
+
+    val recipeViewModel: RecipeViewModel by viewModels {
+        RecipeViewModelFactory(app.recipeRepository)
+    }
+
+    val ingredientViewModel: IngredientViewModel by viewModels {
+        IngredientViewModelFactory(app.ingredientRepository, userId)
+    }
+
+    val notificationViewModel: NotificationViewModel by viewModels {
+        NotificationViewModelFactory(app.notificationRepository)
+    }
+
+    val profileViewModel: ProfileViewModel by viewModels {
         ProfileViewModelFactory(
-            userDao = (application as RecipeApp).userDao,
+            userDao = app.userDao,
             sharedPrefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
         )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            RecipeGeneratorTheme {
-                val context = LocalContext.current
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    val rootNavigationNode = rememberNavController()
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-                    NavHost(
-                        route = _ROOTGRAPH::class,
-                        startDestination = LandingGraph,
-                        navController = rootNavigationNode,
-                    ) {
-                        naviSetHomeDestinations(
-                            upperNavController = rootNavigationNode,
-                            ingredientViewModel = ingredientViewModel,
-                            recipeViewModel = recipeViewModel
-                        )
-                        naviSetSettingsDestinations(
-                            navigationNode = rootNavigationNode,
-                            profileViewModel = profileViewModel,
-                            onLogOut = {
-                                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                                val sharedPrefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                sharedPrefs.edit()
-                                    .putBoolean("remember_me", false)
-                                    .clear()
-                                    .apply()
+        notificationViewModel.syncNotifications(userId)
 
-                                val intent = Intent(context, SplashActivity::class.java)
-                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                context.startActivity(intent)
-                                (context as? Activity)?.finish()
-                            }
-                        )
-                    }
-                }
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+
+        binding.bottomNav.setupWithNavController(navController)
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            when (destination.id) {
+                R.id.recipeDetailFragment,
+                R.id.profileFragment,
+                R.id.notificationsFragment,
+                R.id.appSettingsFragment -> binding.bottomNav.visibility = View.GONE
+                else -> binding.bottomNav.visibility = View.VISIBLE
             }
         }
     }
 }
-
-
-
-// NOTE: Moved AppNavigation to its own file for encapsulation.
-// For AppNavigation and its components, see recipegenerator/navigation/NaviSetHomeDestinations.kt
-//
-// For SettingsNavigation, see recipegenerator/navigation/NaviSetSettingsDestinations.kt
