@@ -149,12 +149,15 @@ fun IngredientsListScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(
-                    onClick = { showAddDialog = true },
+
+                // Add button
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
+                        .clickable { showAddDialog = true },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Sharp.Add, "Add ingredient",
@@ -162,13 +165,17 @@ fun IngredientsListScreen(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+
                 Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = { showFilterDialog = true },
+
+                // Filter button
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { showFilterDialog = true },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Outlined.List, "Filter",
@@ -307,6 +314,7 @@ fun IngredientListItem(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Category initial circle
             Box(
                 modifier = Modifier
                     .size(46.dp)
@@ -324,6 +332,7 @@ fun IngredientListItem(
 
             Spacer(Modifier.width(12.dp))
 
+            // Name + details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     ingredient.name,
@@ -359,13 +368,15 @@ fun IngredientListItem(
 
             Spacer(Modifier.width(8.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(
-                    onClick = onEditClick,
+            // ─── Action Buttons — Box+clickable avoids IconButton overlap ─
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { onEditClick() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Outlined.Create, "Edit",
@@ -373,12 +384,13 @@ fun IngredientListItem(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-                IconButton(
-                    onClick = onDeleteClick,
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color(0xFFFFEBEB))
+                        .clickable { onDeleteClick() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Outlined.Delete, "Delete",

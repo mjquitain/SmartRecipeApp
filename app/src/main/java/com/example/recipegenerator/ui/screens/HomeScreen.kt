@@ -24,36 +24,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.recipegenerator.network.MealDto
-import com.example.recipegenerator.ui.theme.Brown30
-import com.example.recipegenerator.ui.theme.Brown50
-import com.example.recipegenerator.ui.theme.SurfaceWhite
-import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
 import com.example.recipegenerator.ui.theme.scaledSp
+import com.example.recipegenerator.ui.viewmodel.IngredientViewModel
+import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     padding: PaddingValues = PaddingValues(),
     recipeViewModel: RecipeViewModel,
-    ingredientViewModel: com.example.recipegenerator.ui.viewmodel.IngredientViewModel,
+    ingredientViewModel: IngredientViewModel,
     onProfileClick: () -> Unit = {},
     onRecipeClick: (MealDto) -> Unit = {}
 ) {
     var inputText by remember { mutableStateOf("") }
-    var selectedIngredients by remember { mutableStateOf(setOf<String>()) }
-    var hasSearched by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { recipeViewModel.clearGeneratedResults() }
-
+    // All persistent state lives in ViewModel — survives back navigation
+    val selectedIngredients by recipeViewModel.selectedIngredients.collectAsState()
     val isLoading by recipeViewModel.isLoading.collectAsState()
     val errorMessage by recipeViewModel.errorMessage.collectAsState()
     val searchResults by recipeViewModel.generatedWithFavorites.collectAsState()
     val myPantry by ingredientViewModel.ingredients.collectAsState()
     val availableIngredients = myPantry.map { it.name }.distinct()
+
+    // hasSearched also needs to survive navigation — derive it from results
+    val hasSearched = searchResults.isNotEmpty()
 
     Scaffold(
         modifier = Modifier.fillMaxSize().padding(padding),
@@ -74,8 +72,7 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = { }) {
                         Icon(
-                            Icons.Default.Share,
-                            "Share",
+                            Icons.Default.Share, "Share",
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
@@ -87,7 +84,10 @@ fun HomeScreen(
                             .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, "Profile", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(
+                            Icons.Default.Person, "Profile",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                     Spacer(Modifier.width(16.dp))
                 }
@@ -135,6 +135,7 @@ fun HomeScreen(
 
                         Spacer(Modifier.height(12.dp))
 
+                        // ─── Text Input ───────────────────────────────────
                         OutlinedTextField(
                             value = inputText,
                             onValueChange = { inputText = it },
@@ -149,13 +150,12 @@ fun HomeScreen(
                                 IconButton(onClick = {
                                     val trimmed = inputText.trim().lowercase()
                                     if (trimmed.isNotBlank() && trimmed !in selectedIngredients) {
-                                        selectedIngredients = selectedIngredients + trimmed
+                                        recipeViewModel.addIngredient(trimmed)
                                     }
                                     inputText = ""
                                 }) {
                                     Icon(
-                                        Icons.Default.Add,
-                                        "Add ingredient",
+                                        Icons.Default.Add, "Add ingredient",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -165,7 +165,7 @@ fun HomeScreen(
                                 onDone = {
                                     val trimmed = inputText.trim().lowercase()
                                     if (trimmed.isNotBlank() && trimmed !in selectedIngredients) {
-                                        selectedIngredients = selectedIngredients + trimmed
+                                        recipeViewModel.addIngredient(trimmed)
                                     }
                                     inputText = ""
                                 }
@@ -186,20 +186,21 @@ fun HomeScreen(
 
                         Spacer(Modifier.height(8.dp))
 
-                        // Selected ingredients
+                        // ─── Selected Ingredient Chips ────────────────────
                         if (selectedIngredients.isNotEmpty()) {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(selectedIngredients.toList()) { ingredient ->
                                     InputChip(
                                         selected = true,
                                         onClick = {
-                                            selectedIngredients = selectedIngredients - ingredient
+                                            recipeViewModel.removeIngredient(ingredient)
                                         },
-                                        label = { Text(ingredient, fontSize = scaledSp(13f)) },
+                                        label = {
+                                            Text(ingredient, fontSize = scaledSp(13f))
+                                        },
                                         trailingIcon = {
                                             Icon(
-                                                Icons.Default.Close,
-                                                "Remove",
+                                                Icons.Default.Close, "Remove",
                                                 modifier = Modifier.size(14.dp)
                                             )
                                         },
@@ -215,7 +216,7 @@ fun HomeScreen(
                             Spacer(Modifier.height(8.dp))
                         }
 
-                        // Available Ingredients from Room
+                        // ─── Pantry Ingredient Chips ──────────────────────
                         if (availableIngredients.isNotEmpty()) {
                             Text(
                                 "Available Ingredients:",
@@ -229,10 +230,10 @@ fun HomeScreen(
                                     FilterChip(
                                         selected = ingredient in selectedIngredients,
                                         onClick = {
-                                            selectedIngredients =
-                                                if (ingredient in selectedIngredients)
-                                                    selectedIngredients - ingredient
-                                                else selectedIngredients + ingredient
+                                            if (ingredient in selectedIngredients)
+                                                recipeViewModel.removeIngredient(ingredient)
+                                            else
+                                                recipeViewModel.addIngredient(ingredient)
                                         },
                                         label = { Text(ingredient, fontSize = scaledSp(13f)) },
                                         colors = FilterChipDefaults.filterChipColors(
@@ -256,17 +257,16 @@ fun HomeScreen(
                             Spacer(Modifier.height(8.dp))
                         }
 
-                        // Generate button
+                        // ─── Generate Button ──────────────────────────────
                         Button(
                             onClick = {
                                 if (selectedIngredients.isNotEmpty()) {
-                                    hasSearched = true
-                                    recipeViewModel.filterByIngredient(selectedIngredients.first())
+                                    recipeViewModel.filterByIngredient(
+                                        selectedIngredients.first()
+                                    )
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -283,7 +283,11 @@ fun HomeScreen(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Text("Generate Recipes", fontSize = scaledSp(16f), fontWeight = FontWeight.Medium)
+                                Text(
+                                    "Generate Recipes",
+                                    fontSize = scaledSp(16f),
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
                     }
@@ -315,7 +319,7 @@ fun HomeScreen(
                 }
             }
 
-            // ─── Results ─────────────────────────────────────────────────
+            // ─── Results ──────────────────────────────────────────────────
             when {
                 isLoading -> {
                     item {
@@ -366,7 +370,7 @@ fun HomeScreen(
                     }
                 }
 
-                !hasSearched || searchResults.isEmpty() -> {
+                !hasSearched -> {
                     item {
                         Box(
                             modifier = Modifier.fillMaxWidth().height(200.dp),
@@ -421,6 +425,7 @@ fun HomeScreen(
     }
 }
 
+// ─── Generated Recipe Card ────────────────────────────────────────────────────
 @Composable
 private fun GeneratedRecipeCard(meal: MealDto, onClick: () -> Unit) {
     Card(

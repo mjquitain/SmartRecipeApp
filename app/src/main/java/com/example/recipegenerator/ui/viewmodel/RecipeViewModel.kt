@@ -10,44 +10,51 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class RecipeViewModel(
-    private val repository: RecipeRepository,
+    private val repository: RecipeRepository
 ) : ViewModel() {
 
     private val db   = com.google.firebase.firestore.FirebaseFirestore.getInstance()
     private val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
+    // ── Favorites ─────────────────────────────────────────────────────────────
     private val _favoriteIds = MutableStateFlow<List<String>>(emptyList())
     val favoriteIds: StateFlow<List<String>> = _favoriteIds.asStateFlow()
 
-    // ── Search / API State ────────────────────────────────────────────────────
-
-    private val _searchResults = MutableStateFlow<List<MealDto>>(emptyList())
-    val searchResults: StateFlow<List<MealDto>> = _searchResults
-
     val favoriteRecipes: StateFlow<List<RecipeEntity>> = repository.favoriteRecipes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ── Search / API ──────────────────────────────────────────────────────────
+    private val _searchResults = MutableStateFlow<List<MealDto>>(emptyList())
+    val searchResults: StateFlow<List<MealDto>> = _searchResults
 
     val searchResultsWithFavorites: StateFlow<List<MealDto>> = _searchResults
         .combine(favoriteIds) { remoteMeals, cloudIds ->
             remoteMeals.map { it.copy(isFavorite = cloudIds.contains(it.idMeal)) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ── Detail / Navigation State ─────────────────────────────────────────────
+    // ── Generated (Home screen) ───────────────────────────────────────────────
+    private val _generatedResults = MutableStateFlow<List<MealDto>>(emptyList())
+    val generatedResults: StateFlow<List<MealDto>> = _generatedResults
 
-    private val _selectedMealDetails = MutableStateFlow<MealDto?>(null)
-    val selectedMealDetails: StateFlow<MealDto?> = _selectedMealDetails
+    val generatedWithFavorites: StateFlow<List<MealDto>> = _generatedResults
+        .combine(favoriteIds) { remoteMeals, cloudIds ->
+            remoteMeals.map { it.copy(isFavorite = cloudIds.contains(it.idMeal)) }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // ── Detail / Navigation ───────────────────────────────────────────────────
     private val _selectedRecipe = MutableStateFlow<RecipeEntity?>(null)
     val selectedRecipe: StateFlow<RecipeEntity?> = _selectedRecipe.asStateFlow()
 
     private val _navigateToDetails = MutableStateFlow<RecipeEntity?>(null)
     val navigateToDetails: StateFlow<RecipeEntity?> = _navigateToDetails
 
+    private val _selectedMealDetails = MutableStateFlow<MealDto?>(null)
+    val selectedMealDetails: StateFlow<MealDto?> = _selectedMealDetails
+
     private val _selectedMeal = MutableStateFlow<MealDto?>(null)
     val selectedMeal: StateFlow<MealDto?> = _selectedMeal
 
     // ── Loading / Error / Snackbar ────────────────────────────────────────────
-
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
@@ -57,31 +64,46 @@ class RecipeViewModel(
     private val _snackbarMessage = MutableSharedFlow<String>()
     val snackbarMessage = _snackbarMessage.asSharedFlow()
 
-    // ── Category State ────────────────────────────────────────────────────────
-
+    // ── Category ──────────────────────────────────────────────────────────────
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
-    private val _generatedResults = MutableStateFlow<List<MealDto>>(emptyList())
-    val generatedResults: StateFlow<List<MealDto>> = _generatedResults
+    // ── Tab (persists across back navigation) ─────────────────────────────────
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
-    val generatedWithFavorites: StateFlow<List<MealDto>> = _generatedResults
-        .combine(favoriteIds) { remoteMeals, cloudIds ->
-            remoteMeals.map { it.copy(isFavorite = cloudIds.contains(it.idMeal)) }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    fun setTab(index: Int) { _selectedTab.value = index }
 
+    // ── Selected Ingredients (persists across back navigation) ────────────────
+    private val _selectedIngredients = MutableStateFlow<Set<String>>(emptySet())
+    val selectedIngredients: StateFlow<Set<String>> = _selectedIngredients.asStateFlow()
+
+    fun addIngredient(ingredient: String) {
+        _selectedIngredients.value = _selectedIngredients.value + ingredient
+    }
+
+    fun removeIngredient(ingredient: String) {
+        _selectedIngredients.value = _selectedIngredients.value - ingredient
+    }
+
+    fun clearIngredients() {
+        _selectedIngredients.value = emptySet()
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
     init {
+        searchRecipes("chicken") // broad default that returns real results
         fetchFirestoreFavorites()
     }
 
     // ── Firestore ─────────────────────────────────────────────────────────────
-
     private fun fetchFirestoreFavorites() {
         try {
             val uid = auth.currentUser?.uid ?: return
             db.collection("users").document(uid)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) return@addSnapshotListener
+
                     val cloudIds = snapshot?.get("favorites") as? List<String> ?: emptyList()
                     _favoriteIds.value = cloudIds
 
@@ -104,51 +126,60 @@ class RecipeViewModel(
                         } catch (e: Exception) { }
                     }
                 }
-        } catch (e: Exception) {
-            // Google Play Services not available on this emulator
-            // Firebase features will not work but app won't crash
-        }
+        } catch (e: Exception) { }
     }
 
-    // ── Tab ───────────────────────────────────────────────────────────────────
-
-    private val _selectedTab = MutableStateFlow(0)
-    val selectedTab = _selectedTab.asStateFlow()
-
-    fun setTab(index: Int) { _selectedTab.value = index }
-
-    // ── Local Room CRUD ───────────────────────────────────────────────────────
-
+    // ── Room CRUD ─────────────────────────────────────────────────────────────
     fun insert(recipe: RecipeEntity) { viewModelScope.launch { repository.insert(recipe) } }
     fun update(recipe: RecipeEntity) { viewModelScope.launch { repository.update(recipe) } }
     fun delete(recipe: RecipeEntity) { viewModelScope.launch { repository.delete(recipe) } }
 
-    fun toggleFavorite(recipeId: String, isNowFavorite: Boolean, recipeEntity: RecipeEntity? = null) {
+    // ── Toggle Favorite ───────────────────────────────────────────────────────
+    fun toggleFavorite(
+        recipeId: String,
+        isNowFavorite: Boolean,
+        recipeEntity: RecipeEntity? = null
+    ) {
+        val uid = auth.currentUser?.uid ?: return
+        val userRef = db.collection("users").document(uid)
+
         viewModelScope.launch {
             try {
-                val uid = auth.currentUser?.uid
-                if (uid != null) {
-                    val userRef = db.collection("users").document(uid)
-                    if (isNowFavorite) {
-                        userRef.update("favorites",
-                            com.google.firebase.firestore.FieldValue.arrayUnion(recipeId))
-                    } else {
-                        userRef.update("favorites",
-                            com.google.firebase.firestore.FieldValue.arrayRemove(recipeId))
-                    }
-                }
-                // Room operations always work regardless of Firebase
                 if (isNowFavorite) {
-                    recipeEntity?.let { repository.insert(it.copy(isFavorite = true)) }
+                    userRef.update(
+                        "favorites",
+                        com.google.firebase.firestore.FieldValue.arrayUnion(recipeId)
+                    )
+                    // Fetch full details if instruction is missing
+                    val entityToSave = if (
+                        recipeEntity?.instruction.isNullOrBlank() ||
+                        recipeEntity?.instruction == "No instructions available"
+                    ) {
+                        try {
+                            val response = repository.getRecipeById(recipeId)
+                            response.meals?.firstOrNull()?.toEntity()?.copy(isFavorite = true)
+                                ?: recipeEntity?.copy(isFavorite = true)
+                        } catch (e: Exception) {
+                            recipeEntity?.copy(isFavorite = true)
+                        }
+                    } else {
+                        recipeEntity?.copy(isFavorite = true)
+                    }
+                    entityToSave?.let { repository.insert(it) }
                     _snackbarMessage.emit("Added to Favorites")
+
                 } else {
+                    userRef.update(
+                        "favorites",
+                        com.google.firebase.firestore.FieldValue.arrayRemove(recipeId)
+                    )
                     repository.deleteByRemoteId(recipeId)
                     _snackbarMessage.emit("Removed from Favorites")
                 }
             } catch (e: Exception) {
-                // Firebase failed but Room still works
+                // Firebase failed — fall back to Room only
                 if (isNowFavorite) {
-                    recipeEntity?.let { repository.insert(it.copy(isFavorite = true)) }
+                    recipeEntity?.copy(isFavorite = true)?.let { repository.insert(it) }
                     _snackbarMessage.emit("Added to Favorites")
                 } else {
                     repository.deleteByRemoteId(recipeId)
@@ -158,11 +189,10 @@ class RecipeViewModel(
         }
     }
 
-    // ── Remote API Calls ──────────────────────────────────────────────────────
-
+    // ── API Calls ─────────────────────────────────────────────────────────────
     fun searchRecipes(query: String) {
         viewModelScope.launch {
-            if (query != "s") _selectedCategory.value = null
+            _selectedCategory.value = null  // clear category on any search
             _isLoading.value = true
             try {
                 val response = repository.searchRecipesByName(query)
@@ -184,7 +214,6 @@ class RecipeViewModel(
                 _generatedResults.value = response.meals ?: emptyList()
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to load recipes: ${e.message}"
-                _searchResults.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
@@ -248,7 +277,6 @@ class RecipeViewModel(
     }
 
     // ── Clear / Reset ─────────────────────────────────────────────────────────
-
     fun clearGeneratedResults() { _generatedResults.value = emptyList() }
     fun clearError()            { _errorMessage.value = null }
     fun clearSelectedMeal()     { _selectedMeal.value = null; _selectedRecipe.value = null }
@@ -261,7 +289,6 @@ class RecipeViewModel(
 }
 
 // ── MealDto → RecipeEntity ────────────────────────────────────────────────────
-
 fun MealDto.toEntity(): RecipeEntity {
     fun pair(ing: String?, meas: String?): String? =
         if (!ing.isNullOrBlank()) { if (!meas.isNullOrBlank()) "$meas $ing" else ing } else null
@@ -292,7 +319,6 @@ fun MealDto.toEntity(): RecipeEntity {
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
-
 class RecipeViewModelFactory(
     private val repository: RecipeRepository
 ) : ViewModelProvider.Factory {

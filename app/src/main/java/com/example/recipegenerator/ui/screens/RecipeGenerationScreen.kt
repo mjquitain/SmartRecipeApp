@@ -57,7 +57,7 @@ fun RecipeGenerationScreen(
         }
     }
 
-    var selectedTab by remember { mutableStateOf(0) }
+    val selectedTab by recipeViewModel.selectedTab.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var recipeToToggle by remember { mutableStateOf<RecipeEntity?>(null) }
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -135,7 +135,7 @@ fun RecipeGenerationScreen(
             ) {
                 Tab(
                     selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    onClick = { recipeViewModel.setTab(0) },  // CHANGED
                     modifier = Modifier
                         .fillMaxHeight()
                         .padding(5.dp)
@@ -155,7 +155,7 @@ fun RecipeGenerationScreen(
                 }
                 Tab(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    onClick = { recipeViewModel.setTab(1) },  // CHANGED
                     modifier = Modifier
                         .padding(5.dp)
                         .clip(RoundedCornerShape(24.dp))
