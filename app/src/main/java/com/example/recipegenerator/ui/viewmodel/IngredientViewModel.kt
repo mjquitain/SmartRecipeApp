@@ -20,8 +20,6 @@ class IngredientViewModel(
 
     private val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
 
-    // Tracks ingredients currently being deleted — prevents Firestore
-    // snapshot listener from re-adding them before the cloud delete completes
     private val _pendingDeletes = mutableSetOf<String>()
 
     val ingredients: StateFlow<List<IngredientEntity>> = repository.allIngredients
@@ -64,7 +62,6 @@ class IngredientViewModel(
                     }
                 }
         } catch (e: Exception) {
-            // Firestore unavailable — app runs on Room only
         }
     }
 
@@ -75,8 +72,6 @@ class IngredientViewModel(
             val localIngredients = repository.allIngredients.first()
                 .filter { it.userId == userId }
 
-            // Add cloud items that don't exist locally
-            // Skip anything currently being deleted — prevents re-add race condition
             cloudIngredients.forEach { cloudItem ->
                 if (_pendingDeletes.contains(cloudItem.name)) return@forEach
 
@@ -86,8 +81,6 @@ class IngredientViewModel(
                 if (!existsLocally) repository.addIngredient(cloudItem)
             }
 
-            // Remove local items that no longer exist in cloud
-            // Skip pending deletes — they are being handled separately
             localIngredients.forEach { localItem ->
                 if (_pendingDeletes.contains(localItem.name)) return@forEach
 
@@ -97,7 +90,6 @@ class IngredientViewModel(
                 if (!existsInCloud) repository.delete(localItem)
             }
         } catch (e: Exception) {
-            // Sync failed silently
         }
     }
 
@@ -129,7 +121,6 @@ class IngredientViewModel(
         viewModelScope.launch {
             repository.update(ingredient)
 
-            // Also update in Firestore by finding the matching doc
             if (userId.isNotBlank()) {
                 try {
                     val snapshot = db.collection("users")
@@ -153,16 +144,12 @@ class IngredientViewModel(
     }
 
     fun delete(ingredient: IngredientEntity) {
-        // Mark as pending BEFORE coroutine launches so the snapshot
-        // listener can't restore it during the async gap
         _pendingDeletes.add(ingredient.name)
 
         viewModelScope.launch {
             try {
-                // 1. Delete from Room immediately
                 repository.delete(ingredient)
 
-                // 2. Delete from Firestore so snapshot doesn't restore it
                 if (userId.isNotBlank()) {
                     try {
                         val snapshot = db.collection("users")
@@ -176,12 +163,9 @@ class IngredientViewModel(
                             doc.reference.delete().await()
                         }
                     } catch (e: Exception) {
-                        // Firestore delete failed — Room delete still succeeded
-                        // Item will be re-synced on next app launch
                     }
                 }
             } finally {
-                // Always clear the pending delete flag when done
                 _pendingDeletes.remove(ingredient.name)
             }
         }

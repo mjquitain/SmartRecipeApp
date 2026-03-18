@@ -368,7 +368,6 @@ fun IngredientListItem(
 
             Spacer(Modifier.width(8.dp))
 
-            // ─── Action Buttons — Box+clickable avoids IconButton overlap ─
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(
                     modifier = Modifier
@@ -428,7 +427,6 @@ fun IngredientDialog(
     val units = listOf("g", "kg", "ml", "l", "pieces", "tbsp", "tsp", "cups")
     val canSave = name.isNotBlank() && quantity.isNotBlank()
 
-    // Date picker shown outside the Dialog so it renders on top
     if (showDatePicker) {
         IngredientDatePickerDialog(
             initialDateString = expirationDate,
@@ -582,7 +580,6 @@ fun IngredientDialog(
                             fontSize = scaledSp(14f),
                             modifier = Modifier.weight(1f)
                         )
-                        // Clear button if date is set
                         if (expirationDate.isNotBlank()) {
                             Spacer(Modifier.width(4.dp))
                             Icon(

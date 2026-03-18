@@ -82,7 +82,6 @@ fun RecipeGeneratorTheme(
     appSettingsViewModel: AppSettingsViewModel? = null,
     content: @Composable () -> Unit
 ) {
-    // Dark mode — ViewModel state wins over parameter
     val isDark = if (themeViewModel != null) {
         val vmDark by themeViewModel.isDarkMode.collectAsState()
         vmDark

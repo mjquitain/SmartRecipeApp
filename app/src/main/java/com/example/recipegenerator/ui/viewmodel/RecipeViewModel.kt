@@ -150,7 +150,6 @@ class RecipeViewModel(
                         "favorites",
                         com.google.firebase.firestore.FieldValue.arrayUnion(recipeId)
                     )
-                    // Fetch full details if instruction is missing
                     val entityToSave = if (
                         recipeEntity?.instruction.isNullOrBlank() ||
                         recipeEntity?.instruction == "No instructions available"
@@ -177,7 +176,6 @@ class RecipeViewModel(
                     _snackbarMessage.emit("Removed from Favorites")
                 }
             } catch (e: Exception) {
-                // Firebase failed — fall back to Room only
                 if (isNowFavorite) {
                     recipeEntity?.copy(isFavorite = true)?.let { repository.insert(it) }
                     _snackbarMessage.emit("Added to Favorites")
@@ -192,7 +190,7 @@ class RecipeViewModel(
     // ── API Calls ─────────────────────────────────────────────────────────────
     fun searchRecipes(query: String) {
         viewModelScope.launch {
-            _selectedCategory.value = null  // clear category on any search
+            _selectedCategory.value = null
             _isLoading.value = true
             try {
                 val response = repository.searchRecipesByName(query)

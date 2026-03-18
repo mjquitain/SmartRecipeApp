@@ -42,7 +42,6 @@ fun HomeScreen(
 ) {
     var inputText by remember { mutableStateOf("") }
 
-    // All persistent state lives in ViewModel — survives back navigation
     val selectedIngredients by recipeViewModel.selectedIngredients.collectAsState()
     val isLoading by recipeViewModel.isLoading.collectAsState()
     val errorMessage by recipeViewModel.errorMessage.collectAsState()
@@ -50,7 +49,6 @@ fun HomeScreen(
     val myPantry by ingredientViewModel.ingredients.collectAsState()
     val availableIngredients = myPantry.map { it.name }.distinct()
 
-    // hasSearched also needs to survive navigation — derive it from results
     val hasSearched = searchResults.isNotEmpty()
 
     Scaffold(
