@@ -1,25 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Browns -->
-    <color name="brown_10">#FFFDD0</color>
     <color name="brown_30">#A88467</color>
     <color name="brown_50">#67472C</color>
-    <color name="brown_80">#3C210B</color>
 
     <!-- Limes -->
     <color name="lime_10">#FBFEE3</color>
-    <color name="lime_30">#EDFA91</color>
     <color name="lime_50">#C7D94B</color>
-    <color name="lime_80">#94A61A</color>
-    <color name="lime_100">#485200</color>
-
-    <color name="green_10">#00A651</color>
-    <color name="green_30">#50C878</color>
-    <color name="green_50">#98FB98 </color>
 
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="beige">#F5F5DC</color>
 
     <color name="grey_10">#3D3D3D</color>
 </resources>

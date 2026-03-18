@@ -27,15 +27,6 @@ class RecipeRepository(
         recipeDao.deleteRecipe(recipe)
     }
 
-    suspend fun toggleFavorite(recipe: RecipeEntity) {
-        val existingRecipe = recipeDao.getRecipeByRemoteId(recipe.remoteId)
-        if (existingRecipe != null) {
-            recipeDao.deleteRecipe(existingRecipe)
-        } else {
-            recipeDao.insertRecipe(recipe.copy(isFavorite = true))
-        }
-    }
-
     suspend fun getLocalRecipeById(remoteId: String): RecipeEntity? {
         return recipeDao.getRecipeByRemoteId(remoteId)
     }

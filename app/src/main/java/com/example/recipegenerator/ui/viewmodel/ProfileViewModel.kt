@@ -2,9 +2,6 @@ package com.example.recipegenerator.ui.viewmodel
 
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -52,7 +49,7 @@ class ProfileViewModel(
                             _userState.value = finalUser
                             userDao.insertUser(finalUser)
                             sharedPreferences.edit()
-                                .putString("current_username", finalUser.username)
+                                .putString("current_username", finalUser.uid)
                                 .apply()
                         }
                     }

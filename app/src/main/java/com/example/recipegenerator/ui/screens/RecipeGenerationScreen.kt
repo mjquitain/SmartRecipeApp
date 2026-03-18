@@ -25,16 +25,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.recipegenerator.data.entity.RecipeEntity
 import com.example.recipegenerator.network.MealDto
-import com.example.recipegenerator.ui.theme.Brown30
 import com.example.recipegenerator.ui.theme.Brown50
-import com.example.recipegenerator.ui.theme.Lime10
+import com.example.recipegenerator.ui.theme.SurfaceWhite
 import com.example.recipegenerator.ui.viewmodel.RecipeViewModel
 import com.example.recipegenerator.ui.viewmodel.toEntity
+import com.example.recipegenerator.ui.theme.scaledSp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,15 +42,14 @@ fun RecipeGenerationScreen(
     recipeViewModel: RecipeViewModel,
     onProfileClick: () -> Unit = {},
     onRecipeClick: (RecipeEntity) -> Unit = {},
-    onNavigateToHome: () -> Unit = {}
 ) {
     val apiResults by recipeViewModel.searchResults.collectAsState()
     val favoriteRecipes by recipeViewModel.favoriteRecipes.collectAsState()
-
     val isLoading by recipeViewModel.isLoading.collectAsState()
     val errorMessage by recipeViewModel.errorMessage.collectAsState()
+    val favoriteIds by recipeViewModel.favoriteIds.collectAsState()
+    val activeCategory by recipeViewModel.selectedCategory.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val snackbarMessage by recipeViewModel.snackbarMessage. collectAsState(initial = null)
 
     LaunchedEffect(Unit) {
         recipeViewModel.snackbarMessage.collect { message ->
@@ -61,28 +59,42 @@ fun RecipeGenerationScreen(
 
     var selectedTab by remember { mutableStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
-    var recipeToToggle by remember { mutableStateOf<RecipeEntity?>(null)}
+    var recipeToToggle by remember { mutableStateOf<RecipeEntity?>(null) }
     var showConfirmDialog by remember { mutableStateOf(false) }
 
-    val activeCategory by recipeViewModel.selectedCategory.collectAsState()
     val filteredFavorites = favoriteRecipes.filter {
         it.name.contains(searchQuery, ignoreCase = true)
     }
-    val categories = listOf("Beef", "Chicken", "Vegetarian", "Vegan", "Dessert", "Lamb", "Miscellaneous", "Pasta", "Seafood", "Side", "Pork", "Breakfast", "Goat", "Starter")
-    val favoriteIds by recipeViewModel.favoriteIds.collectAsState()
+
+    val categories = listOf(
+        "Beef", "Chicken", "Vegetarian", "Vegan", "Dessert",
+        "Lamb", "Miscellaneous", "Pasta", "Seafood", "Side",
+        "Pork", "Breakfast", "Goat", "Starter"
+    )
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+        modifier = Modifier.fillMaxSize().padding(padding),
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Recipe Dashboard", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lime10),
+                title = {
+                    Text(
+                        "Recipe Dashboard",
+                        fontSize = scaledSp(20f),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                ),
                 actions = {
-                    IconButton(onClick = { /* TODO: Share */ }) {
-                        Icon(Icons.Default.Share, "Share")
+                    IconButton(onClick = { }) {
+                        Icon(
+                            Icons.Default.Share, "Share",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
                     }
                     Box(
                         modifier = Modifier
@@ -92,7 +104,10 @@ fun RecipeGenerationScreen(
                             .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, "Profile", tint = Color.White)
+                        Icon(
+                            Icons.Default.Person, "Profile",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                     Spacer(Modifier.width(16.dp))
                 }
@@ -107,9 +122,10 @@ fun RecipeGenerationScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
+            // ─── Tab Row ──────────────────────────────────────────────────
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = Brown50,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 indicator = { },
                 divider = { },
                 modifier = Modifier
@@ -124,13 +140,17 @@ fun RecipeGenerationScreen(
                         .fillMaxHeight()
                         .padding(5.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(if (selectedTab == 0) Brown30 else Color.Transparent)
+                        .background(
+                            if (selectedTab == 0) MaterialTheme.colorScheme.primary
+                            else Color.Transparent
+                        )
                 ) {
                     Text(
                         "Available Recipes",
                         modifier = Modifier.padding(vertical = 5.dp, horizontal = 5.dp),
                         fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selectedTab == 0) Color.White else Color.Black
+                        color = if (selectedTab == 0) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Tab(
@@ -139,54 +159,74 @@ fun RecipeGenerationScreen(
                     modifier = Modifier
                         .padding(5.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(if (selectedTab == 1) Brown30 else Color.Transparent)
+                        .background(
+                            if (selectedTab == 1) MaterialTheme.colorScheme.primary
+                            else Color.Transparent
+                        )
                 ) {
                     Text(
                         "Favorite Recipes",
                         modifier = Modifier.padding(vertical = 5.dp, horizontal = 5.dp),
                         fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selectedTab == 1) Color.White else Color.Black
+                        color = if (selectedTab == 1) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
+            // ─── Search Field ─────────────────────────────────────────────
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = {
                     searchQuery = it
-                    if (it.length >= 3) {
-                        recipeViewModel.searchRecipes(it)
-                    } else if (it.isEmpty()) {
-                        recipeViewModel.searchRecipes("s")
-                    }
+                    if (it.length >= 3) recipeViewModel.searchRecipes(it)
+                    else if (it.isEmpty()) recipeViewModel.resetToDefault()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                placeholder = { Text("Search recipes...") },
-                leadingIcon = { Icon(Icons.Default.Search, "Search") },
+                modifier = Modifier.fillMaxWidth().height(55.dp),
+                placeholder = {
+                    Text(
+                        "Search recipes...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search, "Search",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = {
                             searchQuery = ""
                             recipeViewModel.resetToDefault()
                         }) {
-                            Icon(Icons.Default.Close, "Clear")
+                            Icon(
+                                Icons.Default.Close, "Clear",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 },
                 shape = RoundedCornerShape(34.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.White
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 singleLine = true
             )
 
             Spacer(Modifier.height(8.dp))
 
+            // ─── Category Chips ───────────────────────────────────────────
             if (selectedTab == 0) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -206,61 +246,113 @@ fun RecipeGenerationScreen(
                             label = { Text(itemCategory) },
                             shape = RoundedCornerShape(20.dp),
                             leadingIcon = if (activeCategory == itemCategory) {
-                                { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
+                                {
+                                    Icon(
+                                        Icons.Default.Check, null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             } else null,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Brown30,
-                                selectedLabelColor = Color.Black
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurface,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = activeCategory == itemCategory,
+                                borderColor = Color.Transparent,
+                                selectedBorderColor = Color.Transparent
                             )
                         )
                     }
                 }
+                Spacer(Modifier.height(8.dp))
             }
 
-            Spacer(Modifier.height(8.dp))
-
+            // ─── Confirm Dialog ───────────────────────────────────────────
             if (showConfirmDialog && recipeToToggle != null) {
                 val isCurrentlyFavorite = favoriteIds.contains(recipeToToggle?.remoteId)
-
                 AlertDialog(
                     onDismissRequest = {
                         showConfirmDialog = false
                         recipeToToggle = null
                     },
-                    title = { Text(if (isCurrentlyFavorite) "Remove Favorite?" else "Add to Favorites?") },
-                    text = { Text("Do you want to ${if (isCurrentlyFavorite) "remove" else "add"} '${recipeToToggle?.name}' ${if (isCurrentlyFavorite) "from" else "to"} your collection?") },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    title = {
+                        Text(
+                            if (isCurrentlyFavorite) "Remove Favorite?" else "Add to Favorites?",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    text = {
+                        Text(
+                            "Do you want to ${if (isCurrentlyFavorite) "remove" else "add"} " +
+                                    "'${recipeToToggle?.name}' " +
+                                    "${if (isCurrentlyFavorite) "from" else "to"} your collection?",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
                     confirmButton = {
-                        Button(onClick = {
-                            recipeViewModel.toggleFavorite(
-                                recipeId = recipeToToggle?.remoteId ?: "",
-                                isNowFavorite = !isCurrentlyFavorite,
-                                recipeEntity = recipeToToggle
+                        Button(
+                            onClick = {
+                                recipeViewModel.toggleFavorite(
+                                    recipeId = recipeToToggle?.remoteId ?: "",
+                                    isNowFavorite = !isCurrentlyFavorite,
+                                    recipeEntity = recipeToToggle
+                                )
+                                showConfirmDialog = false
+                                recipeToToggle = null
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
-                            showConfirmDialog = false
-                            recipeToToggle = null
-                        }) {
-                            Text("Confirm")
-                        }
+                        ) { Text("Confirm") }
                     },
                     dismissButton = {
-                        TextButton(onClick = {
-                            showConfirmDialog = false
-                            recipeToToggle = null
-                        }) {
-                            Text("Cancel")
-                        }
+                        TextButton(
+                            onClick = {
+                                showConfirmDialog = false
+                                recipeToToggle = null
+                            },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) { Text("Cancel") }
                     }
                 )
             }
 
+            // ─── Content ──────────────────────────────────────────────────
             when {
                 isLoading && apiResults.isEmpty() && favoriteRecipes.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 errorMessage != null -> {
-                    ErrorView(errorMessage = errorMessage!!) { recipeViewModel.clearError() }
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Warning, null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(errorMessage ?: "", color = MaterialTheme.colorScheme.error)
+                            TextButton(
+                                onClick = { recipeViewModel.clearError() },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) { Text("Dismiss") }
+                        }
+                    }
                 }
                 else -> {
                     when (selectedTab) {
@@ -278,16 +370,17 @@ fun RecipeGenerationScreen(
                                     )
                                 )
                             },
-                            onFavoritesClick = { mealDto, currentFavoriteState ->
+                            onFavoritesClick = { mealDto, _ ->
                                 recipeToToggle = mealDto.toEntity()
                                 showConfirmDialog = true
-                            },
+                            }
                         )
                         1 -> FavoritesGrid(
                             favorites = filteredFavorites,
                             onFavoritesClick = { recipeEntity ->
                                 recipeToToggle = recipeEntity
-                                showConfirmDialog = true},
+                                showConfirmDialog = true
+                            },
                             onRecipeClick = { recipe -> onRecipeClick(recipe) }
                         )
                     }
@@ -297,20 +390,19 @@ fun RecipeGenerationScreen(
     }
 }
 
-/**
- * Card for Tab 0 — API results (MealDto)
- * MealDB filter endpoint only returns meal name and thumbnail,
- * so cooking time and difficulty are not available here.
- */
+// ─── API Recipe Card ──────────────────────────────────────────────────────────
 @Composable
-private fun ApiRecipeCard(meal: MealDto, isFavorite: Boolean, onFavoriteClick: () -> Unit, onClick: () -> Unit) {
+private fun ApiRecipeCard(
+    meal: MealDto,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.85f),
+        modifier = Modifier.fillMaxWidth().aspectRatio(0.85f),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         onClick = onClick
@@ -318,9 +410,7 @@ private fun ApiRecipeCard(meal: MealDto, isFavorite: Boolean, onFavoriteClick: (
         Box(Modifier.fillMaxSize()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(meal.strMealThumb)
-                    .crossfade(true)
-                    .build(),
+                    .data(meal.strMealThumb).crossfade(true).build(),
                 contentDescription = meal.strMeal,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -332,34 +422,42 @@ private fun ApiRecipeCard(meal: MealDto, isFavorite: Boolean, onFavoriteClick: (
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.9f))
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(8.dp)
             ) {
-                Text(meal.strMeal, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(meal.strCategory ?: "Recipe", fontSize = 11.sp, color = Color.Gray)
+                Text(
+                    meal.strMeal, fontSize = scaledSp(14f), fontWeight = FontWeight.Bold,
+                    maxLines = 1, color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    meal.strCategory ?: "Recipe",
+                    fontSize = scaledSp(11f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Box(modifier = Modifier.fillMaxSize()) {
-                IconButton(
-                    onClick = onFavoriteClick,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (isFavorite) Color.Red else Color.Gray
+            IconButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        CircleShape
                     )
-                }
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite
+                    else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFavorite) Color.Red
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
-/**
- * Card for Tab 1 — Room saved favorites (RecipeEntity)
- */
+// ─── Local Favorites Card ─────────────────────────────────────────────────────
 @Composable
 private fun LocalRecipeCard(
     recipe: RecipeEntity,
@@ -367,12 +465,10 @@ private fun LocalRecipeCard(
     onCardClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.85f),
+        modifier = Modifier.fillMaxWidth().aspectRatio(0.85f),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         onClick = onCardClick
@@ -380,9 +476,7 @@ private fun LocalRecipeCard(
         Box(Modifier.fillMaxSize()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(recipe.imageUrl)
-                    .crossfade(true)
-                    .build(),
+                    .data(recipe.imageUrl).crossfade(true).build(),
                 contentDescription = recipe.name,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -394,37 +488,48 @@ private fun LocalRecipeCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.9f))
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(8.dp)
             ) {
-                Text(recipe.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(recipe.category ?: "Recipe", fontSize = 11.sp, color = Color.Gray)
+                Text(
+                    recipe.name, fontSize = scaledSp(14f), fontWeight = FontWeight.Bold,
+                    maxLines = 1, color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    recipe.category ?: "Recipe",
+                    fontSize = scaledSp(11f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Box(modifier = Modifier.fillMaxSize()) {
-                IconButton(
-                    onClick = onFavoriteClick,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = if (recipe.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (recipe.isFavorite) Color.Red else Color.Gray
+            IconButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        CircleShape
                     )
-                }
+            ) {
+                Icon(
+                    imageVector = if (recipe.isFavorite) Icons.Default.Favorite
+                    else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (recipe.isFavorite) Color.Red
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
+// ─── Grids ────────────────────────────────────────────────────────────────────
 @Composable
 fun ApiRecipesGrid(
     apiResults: List<MealDto>,
     favoriteIds: List<String>,
     onMealClick: (String) -> Unit,
-    onFavoritesClick: (MealDto, Boolean) -> Unit,
+    onFavoritesClick: (MealDto, Boolean) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -435,7 +540,12 @@ fun ApiRecipesGrid(
     ) {
         items(apiResults, key = { it.idMeal }) { meal ->
             val isFavorite = favoriteIds.contains(meal.idMeal)
-            ApiRecipeCard(meal = meal, isFavorite = isFavorite, onFavoriteClick = { onFavoritesClick(meal, isFavorite) }, onClick = { onMealClick(meal.idMeal) })
+            ApiRecipeCard(
+                meal = meal,
+                isFavorite = isFavorite,
+                onFavoriteClick = { onFavoritesClick(meal, isFavorite) },
+                onClick = { onMealClick(meal.idMeal) }
+            )
         }
     }
 }
@@ -447,7 +557,23 @@ fun FavoritesGrid(
     onRecipeClick: (RecipeEntity) -> Unit
 ) {
     if (favorites.isEmpty()) {
-        EmptyStateView(message = "No favorite recipes yet")
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.Search, null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
+                Text(
+                    "No favorite recipes yet",
+                    fontSize = scaledSp(14f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     } else {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -455,85 +581,40 @@ fun FavoritesGrid(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            items (favorites, key = { it.remoteId }) {recipe ->
-                LocalRecipeCard(recipe = recipe, onCardClick = { onRecipeClick(recipe) }, onFavoriteClick = { onFavoritesClick(recipe) })
+            items(favorites, key = { it.remoteId }) { recipe ->
+                LocalRecipeCard(
+                    recipe = recipe,
+                    onCardClick = { onRecipeClick(recipe) },
+                    onFavoriteClick = { onFavoritesClick(recipe) }
+                )
             }
         }
     }
 }
 
-@Composable
-fun ErrorView(errorMessage: String, onDismiss: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(Icons.Default.Warning, null, modifier = Modifier.size(48.dp), tint = Color.Red)
-            Text(errorMessage, color = Color.Red)
-            TextButton(onClick = onDismiss) { Text("Dismiss") }
-        }
-    }
-}
-
-@Composable
-fun EmptyStateView(
-    message: String,
-    actionText: String? = null,
-    onAction: (() -> Unit)? = null
-) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                Icons.Default.Search, null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-            )
-            Text(
-                message,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            if (actionText != null && onAction != null) {
-                TextButton(onClick = onAction) {
-                    Text(actionText)
-                }
-            }
-        }
-    }
-}
-
+// ─── Recipe Detail Screen ─────────────────────────────────────────────────────
 @Composable
 fun RecipeDetailScreen(
     padding: PaddingValues = PaddingValues(),
     recipe: RecipeEntity,
     onBackClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    onNavigateToHome: () -> Unit
 ) {
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+        modifier = Modifier.fillMaxSize().padding(padding),
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(innerPadding),
+                .padding(innerPadding)
         ) {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
                 AsyncImage(
                     model = recipe.imageUrl,
                     contentDescription = recipe.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp),
+                    modifier = Modifier.fillMaxWidth().height(250.dp),
                     contentScale = ContentScale.Crop
                 )
                 IconButton(
@@ -541,13 +622,10 @@ fun RecipeDetailScreen(
                     modifier = Modifier
                         .padding(16.dp, 30.dp)
                         .align(Alignment.TopStart)
-                        .background(
-                            Color.Black.copy(alpha = 0.4f), CircleShape
-                        )
+                        .background(Color.Black.copy(alpha = 0.4f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
+                        Icons.Default.ArrowBack, "Back",
                         tint = Color.White
                     )
                 }
@@ -556,38 +634,71 @@ fun RecipeDetailScreen(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(16.dp, 30.dp)
-                        .background(Color.Gray.copy(alpha = 0.4f), CircleShape)
+                        .background(Color.Black.copy(alpha = 0.4f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = if (recipe.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (recipe.isFavorite) Icons.Default.Favorite
+                        else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
                         tint = if (recipe.isFavorite) Color.Red else Color.White
                     )
                 }
             }
+
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(recipe.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    recipe.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                    SuggestionChip(onClick = {}, label = { Text(recipe.category) })
+                    SuggestionChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                recipe.category,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    )
                     Spacer(Modifier.width(8.dp))
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    color = MaterialTheme.colorScheme.outline
+                )
 
-                Text("Ingredients", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Ingredients",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 Text(
                     text = recipe.ingredients,
                     modifier = Modifier.padding(vertical = 8.dp),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(Modifier.height(16.dp))
 
-                Text("Instructions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Instructions",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 Text(
                     text = recipe.instruction,
                     modifier = Modifier.padding(vertical = 8.dp),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

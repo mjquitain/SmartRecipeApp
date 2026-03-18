@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!-- Home Screen -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.recipegenerator.ui.fragments.HomeFragment"
+        android:label="Home">
+        <action
+            android:id="@+id/action_home_to_ingredients"
+            app:destination="@id/ingredientsFragment" />
+        <action
+            android:id="@+id/action_home_to_recipes"
+            app:destination="@id/recipeGenerationFragment" />
+        <action
+            android:id="@+id/action_home_to_detail"
+            app:destination="@id/recipeDetailFragment" />
+        <action
+            android:id="@+id/action_home_to_profile"
+            app:destination="@id/profileFragment" />
+    </fragment>
+
+    <!-- Ingredients Screen -->
+    <fragment
+        android:id="@+id/ingredientsFragment"
+        android:name="com.example.recipegenerator.ui.fragments.IngredientsFragment"
+        android:label="Ingredients">
+        <action
+            android:id="@+id/action_ingredients_to_home"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_ingredients_to_profile"
+            app:destination="@id/profileFragment" />
+    </fragment>
+
+    <!-- Recipe Generation Screen -->
+    <fragment
+        android:id="@+id/recipeGenerationFragment"
+        android:name="com.example.recipegenerator.ui.fragments.RecipeGenerationFragment"
+        android:label="Recipes">
+        <action
+            android:id="@+id/action_recipes_to_home"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_recipes_to_detail"
+            app:destination="@id/recipeDetailFragment" />
+        <action
+            android:id="@+id/action_recipes_to_profile"
+            app:destination="@id/profileFragment" />
+    </fragment>
+
+    <!-- Recipe Detail Screen -->
+    <fragment
+        android:id="@+id/recipeDetailFragment"
+        android:name="com.example.recipegenerator.ui.fragments.RecipeDetailFragment"
+        android:label="Recipe Detail">
+        <argument
+            android:name="recipeId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_detail_to_recipes"
+            app:destination="@id/recipeGenerationFragment" />
+    </fragment>
+
+    <!-- Profile Screen -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.recipegenerator.ui.fragments.ProfileFragment"
+        android:label="Profile">
+        <action
+            android:id="@+id/action_profile_to_home"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_profile_to_notifications"
+            app:destination="@id/notificationsFragment" />
+        <action
+            android:id="@+id/action_profile_to_app_settings"
+            app:destination="@id/appSettingsFragment" />
+    </fragment>
+
+    <!-- Notifications Screen -->
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.example.recipegenerator.ui.fragments.NotificationsFragment"
+        android:label="Notifications">
+        <action
+            android:id="@+id/action_notifications_to_profile"
+            app:destination="@id/profileFragment" />
+    </fragment>
+
+    <!-- Application Settings Screen -->
+    <fragment
+        android:id="@+id/appSettingsFragment"
+        android:name="com.example.recipegenerator.ui.fragments.AppSettingsFragment"
+        android:label="App Settings">
+        <action
+            android:id="@+id/action_app_settings_to_profile"
+            app:destination="@id/profileFragment" />
+    </fragment>
+
+</navigation>

@@ -14,33 +14,28 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RecipeGenerator">
-        <activity
-            android:name=".data.dao.UserDao"
-            android:exported="false" />
-        <activity
-            android:name=".data.entity.UserEntity"
-            android:exported="false" />
-        <!-- SplashActivity -->
+
         <activity
             android:name=".SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- MainActivity - Login/Signup page -->
+
         <activity
             android:name=".MainActivity"
-            android:exported="true"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:label="@string/app_name"
             android:theme="@style/Theme.RecipeGenerator" />
-        <!-- HomeActivity -->
+
         <activity
             android:name=".HomeActivity"
             android:exported="false"
             android:theme="@style/Theme.RecipeGenerator" />
+
     </application>
 
 </manifest>
