@@ -117,28 +117,39 @@ class IngredientViewModel(
         }
     }
 
-    fun update(ingredient: IngredientEntity) {
+    fun update(originalIngredient: IngredientEntity, updatedIngredient: IngredientEntity) {
+        _pendingDeletes.add(originalIngredient.name)
+
         viewModelScope.launch {
-            repository.update(ingredient)
+            try {
+                // Delete old record (old primary key)
+                repository.delete(originalIngredient)
+                // Insert new record (new primary key with updated fields)
+                repository.addIngredient(updatedIngredient)
 
-            if (userId.isNotBlank()) {
-                try {
-                    val snapshot = db.collection("users")
-                        .document(userId)
-                        .collection("ingredients")
-                        .whereEqualTo("name", ingredient.name)
-                        .get()
-                        .await()
+                // Update Firestore
+                if (userId.isNotBlank()) {
+                    try {
+                        val snapshot = db.collection("users")
+                            .document(userId)
+                            .collection("ingredients")
+                            .whereEqualTo("name", originalIngredient.name)
+                            .get()
+                            .await()
 
-                    snapshot.documents.firstOrNull()?.reference?.update(
-                        mapOf(
-                            "category" to ingredient.category,
-                            "quantity" to ingredient.quantity,
-                            "unit" to ingredient.unit,
-                            "expirationDate" to ingredient.expirationDate
-                        )
-                    )?.await()
-                } catch (e: Exception) { }
+                        snapshot.documents.firstOrNull()?.reference?.update(
+                            mapOf(
+                                "name"           to updatedIngredient.name,
+                                "category"       to updatedIngredient.category,
+                                "quantity"       to updatedIngredient.quantity,
+                                "unit"           to updatedIngredient.unit,
+                                "expirationDate" to updatedIngredient.expirationDate
+                            )
+                        )?.await()
+                    } catch (e: Exception) { }
+                }
+            } finally {
+                _pendingDeletes.remove(originalIngredient.name)
             }
         }
     }
