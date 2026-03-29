@@ -273,7 +273,10 @@ fun IngredientsListScreen(
             ingredient = ingredientToEdit,
             onDismiss = { showEditDialog = false; ingredientToEdit = null },
             onSave = { updatedIngredient ->
-                ingredientViewModel.update(updatedIngredient)
+                ingredientViewModel.update(
+                    originalIngredient = ingredientToEdit!!,
+                    updatedIngredient = updatedIngredient
+                )
                 showEditDialog = false
                 ingredientToEdit = null
             }
