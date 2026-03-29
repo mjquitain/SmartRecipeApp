@@ -12,13 +12,13 @@
           "package_name": "com.example.recipegenerator"
         }
       },
-      "_client": [
+      "oauth_client": [
         {
-          "client_id": "909319533175-o2gl2fg62oaj7n97qs3ubmserhj3j87q.apps.googleusercontent.com",
+          "client_id": "909319533175-cefg18icn8on7j4m47sh1i59p7gr7vp2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.recipegenerator",
-            "certificate_hash": "e24350810cea744b8bf7393e0ba528852cf88de8"
+            "certificate_hash": "ddcd9cdc90654a9761b2816e0f68e8a1a9694a59"
           }
         },
         {
