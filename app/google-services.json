@@ -12,7 +12,7 @@
           "package_name": "com.example.recipegenerator"
         }
       },
-      "oauth_client": [
+      "_client": [
         {
           "client_id": "909319533175-o2gl2fg62oaj7n97qs3ubmserhj3j87q.apps.googleusercontent.com",
           "client_type": 1,
