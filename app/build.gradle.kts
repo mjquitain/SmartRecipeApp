@@ -29,6 +29,12 @@ android {
             keyAlias = "castelli"
             keyPassword = "caste11irecipes23"
         }
+        getByName("debug") {
+            storeFile = file("keystore-debug.jks")
+            storePassword = "caste11irecipes23"
+            keyAlias = "castelli-debug"
+            keyPassword = "caste11irecipes23"
+        }
     }
 
     buildTypes {
